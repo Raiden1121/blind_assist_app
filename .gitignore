@@ -1,0 +1,27 @@
+# Flutter & Dart
+.dart_tool/
+.packages
+.pub/
+build/
+
+# IDE／Editor
+.idea/
+.vscode/
+
+# Xcode
+ios/Pods/
+ios/Flutter/Flutter.framework
+ios/.symlinks/
+macos/Pods/
+
+# Android Gradle
+android/.gradle/
+
+# Generated
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# 系統檔案
+*.DS_Store
+*.swp
