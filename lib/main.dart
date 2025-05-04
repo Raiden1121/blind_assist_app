@@ -1,31 +1,69 @@
+// =======================================================
+// main.dart
+// 這是 Blind Assist App 的主入口檔案
+// 功能：
+// 1️⃣ 初始化 Firebase
+// 2️⃣ 根據是否登入決定顯示 LoginPage 或 AssistHomePage
+// 3️⃣ AssistHomePage：主頁面（包含相機影像、語音輸入、語音播報）
+// =======================================================
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:blind_assist_app/widgets/camera_view.dart';
-import 'package:blind_assist_app/widgets/voice_input.dart';
-import 'package:blind_assist_app/widgets/speech_player.dart';
-import 'package:blind_assist_app/services/mcp_service.dart';
+import 'firebase_options.dart'; // ← flutterfire configure 產生的檔案，用於初始化 Firebase
+import 'package:blind_assist_app/widgets/camera_view.dart'; // 相機畫面
+import 'package:blind_assist_app/widgets/voice_input.dart'; // 語音輸入按鈕
+import 'package:blind_assist_app/widgets/speech_player.dart'; // 語音播放工具
+import 'package:blind_assist_app/services/mcp_service.dart'; // MCP 後端 API 呼叫
+import 'package:blind_assist_app/widgets/login_page.dart'; // 登入／註冊畫面
 
 void main() async {
+  // 確保 Flutter 綁定初始化（執行 async 前必需）
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // 初始化 Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 啟動 Flutter 應用
   runApp(const BlindAssistApp());
 }
 
+/// Flutter 應用主體
 class BlindAssistApp extends StatelessWidget {
   const BlindAssistApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Blind Assist App',
-      home: const AssistHomePage(),
-      debugShowCheckedModeBanner: false,
+      title: 'Blind Assist App', // 應用程式標題
+      debugShowCheckedModeBanner: false, // 移除 debug 標記
+      home: StreamBuilder<User?>(
+        // 監聽 Firebase 登入狀態
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          // 🔄 Firebase 初始化中 → 顯示 loading spinner
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          // ✅ 已登入 → 顯示 AssistHomePage
+          if (snapshot.hasData) {
+            return const AssistHomePage();
+          }
+          // ❌ 未登入 → 顯示 LoginPage
+          return const LoginPage();
+        },
+      ),
     );
   }
 }
 
+/// 應用的主畫面
 class AssistHomePage extends StatefulWidget {
   const AssistHomePage({Key? key}) : super(key: key);
 
@@ -34,24 +72,27 @@ class AssistHomePage extends StatefulWidget {
 }
 
 class _AssistHomePageState extends State<AssistHomePage> {
+  // 建立語音播放工具
   final SpeechPlayer speechPlayer = SpeechPlayer();
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () async {
-      // ✅ 播放啟動語音
+
+    // 初始化後執行
+    Future.microtask(() async {
+      // 播放啟動語音提示
       await speechPlayer.speak("System started. Monitoring the environment.");
 
-      // ✅ 寫入 Firestore
+      // （示範用）寫入一筆資料到 Firestore
       try {
         await FirebaseFirestore.instance.collection('testCollection').add({
           'timestamp': DateTime.now(),
           'message': 'Hello from Flutter',
         });
-        print("✅ Successfully added to Firestore");
+        print("✅ Added to Firestore");
       } catch (e) {
-        print("🔥 Failed to add to Firestore: $e");
+        print("🔥 Firestore write failed: $e");
       }
     });
   }
@@ -59,17 +100,26 @@ class _AssistHomePageState extends State<AssistHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Blind Assist'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              // 登出 Firebase
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
       body: Stack(
         children: [
-          const CameraView(),
+          const CameraView(), // 相機畫面
           Align(
             alignment: Alignment.bottomCenter,
             child: VoiceInput(
               onResult: (String text) async {
-                print('🎙 Recognized: $text');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('你說：$text')),
-                );
+                // 當語音輸入完成後，處理指令
                 await MCPService.handleUserCommand(text);
               },
             ),
