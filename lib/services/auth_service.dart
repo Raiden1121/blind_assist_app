@@ -8,12 +8,13 @@
 // =======================================================
 
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:google_sign_in/google_sign_in.dart'; // ✅ 註解掉 Google Sign-in
+import 'package:google_sign_in/google_sign_in.dart'; // ✅ 註解掉 Google Sign-in
 // import 'package:sign_in_with_apple/sign_in_with_apple.dart'; // ✅ 註解掉 Apple Sign-in
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance; // Firebase Auth 實例
-  // static final GoogleSignIn _googleSignIn = GoogleSignIn(); // ✅ 註解掉 Google Sign-in 實例
+  static final GoogleSignIn _googleSignIn =
+      GoogleSignIn(); // ✅ 註解掉 Google Sign-in 實例
 
   /// 🔄 監聽使用者登入狀態變化
   static Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -41,8 +42,7 @@ class AuthService {
     return _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  /*
-  // ❌ Google 登入功能（已註解，不使用）
+  // Google 登入功能
   static Future<UserCredential> signInWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
@@ -59,6 +59,7 @@ class AuthService {
     return _auth.signInWithCredential(credential);
   }
 
+  /*
   // ❌ Apple 登入功能（已註解，不使用）
   static Future<UserCredential> signInWithApple() async {
     final appleCred = await SignInWithApple.getAppleIDCredential(
@@ -76,9 +77,8 @@ class AuthService {
   */
 
   /// ✅ 登出功能
-  /// （因未使用 Google sign-in → 無需另外登出 Google）
   static Future<void> signOut() async {
-    // await _googleSignIn.signOut().catchError((_) {}); // ✅ 註解掉 Google signOut
+    await _googleSignIn.signOut().catchError((_) {}); // Google signOut
     await _auth.signOut(); // 登出 Firebase
   }
 }

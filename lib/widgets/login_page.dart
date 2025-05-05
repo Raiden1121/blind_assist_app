@@ -116,14 +116,10 @@ class _LoginPageState extends State<LoginPage> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Column(
                         children: [
-                          // 登入按鈕
                           ElevatedButton.icon(
                             onPressed: () => _submit(signUp: false),
                             icon: const Icon(Icons.login),
-                            label: const Text(
-                              'Email Login',
-                              style: TextStyle(fontSize: 18),
-                            ),
+                            label: const Text('Email Login'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blueAccent,
                               minimumSize: const Size(double.infinity, 60),
@@ -133,21 +129,45 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // 註冊按鈕
                           OutlinedButton.icon(
                             onPressed: () => _submit(signUp: true),
                             icon: const Icon(Icons.person_add,
                                 color: Colors.white),
-                            label: const Text(
-                              'Create Email',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.white),
-                            ),
+                            label: const Text('Create an Email'),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white70),
                               minimumSize: const Size(double.infinity, 60),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16), // ← 新增分隔
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await AuthService.signInWithGoogle();
+                              } catch (e) {
+                                setState(() => _error = e.toString());
+                              }
+                            },
+                            icon: Image.asset(
+                              'assets/google_logo.png', // 這裡放 Google logo 圖檔路徑
+                              height: 24,
+                              width: 24,
+                            ),
+                            label: const Text(
+                              'Sign in with Google',
+                              style: TextStyle(
+                                  color: Colors.black87, fontSize: 16),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white, // 白底
+                              side:
+                                  const BorderSide(color: Colors.grey), // 灰色邊框
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                           ),
