@@ -148,11 +148,11 @@ class _VoiceInputState extends State<VoiceInput> {
         onPointerUp: (_) => _stopHoldListening(), // 手指放開 → 停止錄音
         onPointerCancel: (_) => _stopHoldListening(), // 手指被取消（滑出按鈕區域）
         child: FloatingActionButton(
-          backgroundColor: _isListening ? Colors.redAccent : Colors.blueAccent,
+          backgroundColor: _isListening ? const Color.fromARGB(255, 219, 54, 54) : const Color.fromARGB(255, 169, 67, 67),
           onPressed: () {}, // 👉 按鈕點擊事件不處理（用 Listener 控制）
           child: Icon(
             _isListening ? Icons.mic : Icons.mic_none,
-            size: 32,
+            size: 60,
           ),
         ),
       ),
