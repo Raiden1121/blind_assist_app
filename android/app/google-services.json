@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:617941879669:android:e23915d666fab3dbfa213c",
         "android_client_info": {
-          "package_name": "com.apacnuc.blindassist"
+          "package_name": "com.example.blind_assist_app"
         }
       },
       "oauth_client": [],
