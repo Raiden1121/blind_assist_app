@@ -152,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
                               }
                             },
                             icon: Image.asset(
-                              'assets/google_logo.png', // 這裡放 Google logo 圖檔路徑
+                              'assets/image/google_logo.png', // 這裡放 Google logo 圖檔路徑
                               height: 24,
                               width: 24,
                             ),
