@@ -29,4 +29,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/image/google_logo.png
+    - assets/image/GeminEye_Logo.png
   uses-material-design: true

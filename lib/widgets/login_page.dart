@@ -27,7 +27,8 @@ class _LoginPageState extends State<LoginPage> {
   /// 格式化 Firebase 錯誤訊息
   String _formatAuthError(Object e) {
     if (e is FirebaseAuthException) {
-      return e.message ?? 'Unknown error encountered.'; // 如果 message 是 null，給一個通用錯誤
+      return e.message ??
+          'Unknown error encountered.'; // 如果 message 是 null，給一個通用錯誤
     }
     // 對於其他類型的錯誤，嘗試移除常見的前綴
     String errorMessage = e.toString();
@@ -73,7 +74,6 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: Colors.black87, // ✅ 整體背景：深色
       appBar: AppBar(
-        title: const Text('盲人輔助系統登入'), // App 標題
         backgroundColor: Colors.black,
       ),
       body: Padding(
@@ -83,7 +83,11 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               children: [
                 // 頭像圖示
-                Icon(Icons.person, size: 80, color: Colors.white70),
+                Image.asset(
+                  'assets/image/GeminEye_Logo.png',
+                  width: 180,
+                  height: 180,
+                ),
                 const SizedBox(height: 20),
                 // Email 輸入框
                 TextField(
@@ -134,10 +138,11 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _submit(signUp: false),
-                            icon: const Icon(Icons.login),
+                            icon: const Icon(Icons.login, color: Colors.white),
                             label: const Text('Email Login'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blueAccent,
+                              foregroundColor: Colors.white,
                               minimumSize: const Size(double.infinity, 60),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -151,7 +156,8 @@ class _LoginPageState extends State<LoginPage> {
                                 color: Colors.white),
                             label: const Text('Create an Email'),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white70),
+                              backgroundColor: const Color(0xFFFAC230),
+                              foregroundColor: Colors.white,
                               minimumSize: const Size(double.infinity, 60),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
