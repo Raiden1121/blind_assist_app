@@ -31,9 +31,10 @@
         }
 
         .container {
+            padding: 0 20px;
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
         }
 
         /* Header & Navigation */
@@ -172,20 +173,88 @@
             color: var(--primary);
         }
 
-        /* Hero Section */
         .hero {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
+            height: auto;
+            padding: 250px 0 200px 0;
             background: linear-gradient(135deg, #f5f7fa 0%, #e9ebee 100%);
         }
 
+        .hero>.container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .hero-content,
+        .hero-image {
+            flex: 1 1 50%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+
         .hero-content {
-            width: 50%;
-            z-index: 2;
-            animation: fadeInLeft 1s ease-out;
+            padding-right: 20px;
+        }
+
+        .hero-image {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .hero-image .phone-mockup {
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-content h1 {
+                font-size: 3rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .step-line {
+                display: none;
+                /* Hide the step line on mobile */
+            }
+
+            .step-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 30px;
+                /* Add gap between steps */
+            }
+
+            .step {
+                margin-bottom: 0;
+                /* Remove bottom margin since we're using gap */
+                width: 100%;
+                /* Allow steps to take full width */
+                max-width: 300px;
+                /* Limit maximum width for better readability */
+            }
+
+            .hero>.container {
+                flex-direction: column;
+                padding: 60px 20px;
+            }
+
+            .hero-content,
+            .hero-image {
+                flex: 1 1 100%;
+                max-width: none;
+                padding: 0;
+            }
+
+            .hero-image {
+                margin-top: 40px;
+                height: auto;
+            }
         }
 
         @keyframes fadeInLeft {
@@ -436,6 +505,9 @@
         }
 
         .feature-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
             background-color: white;
             padding: 30px;
             border-radius: 15px;
@@ -846,6 +918,56 @@
 
         @media (max-width: 768px) {
             .hero {
+                padding-top: 120px;
+            }
+
+            .hero-content {
+                padding: 0 20px;
+                margin-bottom: 60px;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+                line-height: 1.3;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .hero-image {
+                padding: 0 20px;
+                height: 400px;
+            }
+
+            .phone-mockup {
+                width: 250px;
+                height: 500px;
+                margin: 0 auto;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: white;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .nav-links li {
+                margin: 15px 0;
+            }
+
+            .hero {
                 flex-direction: column;
                 height: auto;
                 padding: 100px 0 50px;
@@ -901,13 +1023,54 @@
             }
         }
 
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 2.5rem;
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .hero {
+                min-height: 100vh;
+                padding-top: 100px;
             }
 
-            .cta-buttons {
+            .hero-content {
+                width: 100%;
+                padding: 0 40px;
+                text-align: center;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .hero-image {
+                position: relative;
+                width: 100%;
+                height: 450px;
+                margin-top: 40px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                padding: 0 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-buttons {
                 flex-direction: column;
+                gap: 15px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 0 20px;
+            }
+
+            .feature-card {
+                padding: 20px;
             }
         }
     </style>
@@ -928,7 +1091,6 @@
                     <li><a href="#testimonials">Testimonials</a></li>
                     <li><a href="#contact">Contact</a></li>
                 </ul>
-                <a href="#download" class="cta-button">Download App</a>
                 <button class="mobile-nav-toggle">☰</button>
             </nav>
         </div>
@@ -968,7 +1130,6 @@
                 </div>
             </div>
         </div>
-        <div class="wave"></div>
     </section>
 
     <!-- Features Section -->

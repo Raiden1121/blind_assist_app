@@ -53,22 +53,6 @@ class _CameraViewState extends State<CameraView> {
         break;
       }
     }
-    
-    int _frameCounter = 0;
-    final int _processFrameInterval = 5; // 每 5 幀處理一次
-
-      _controller!.startImageStream((CameraImage img) {
-      _frameCounter++;
-      if (!_isSending && _frameCounter % _processFrameInterval == 0) {
-      _isSending = true;
-      MCPService.analyzeCameraFrame(img).then((_) {
-      _isSending = false;
-      }).catchError((e) {
-        print("Error analyzing frame: $e");
-        _isSending = false; // 發生錯誤也要重設標誌
-        });
-      }
-    });
 
     // 建立相機控制器
     _controller = CameraController(
@@ -77,6 +61,22 @@ class _CameraViewState extends State<CameraView> {
       enableAudio: false, // 關閉音訊
     );
     await _controller!.initialize(); // 初始化控制器
+
+    int _frameCounter = 0;
+    final int _processFrameInterval = 5; // 每 5 幀處理一次
+
+    _controller!.startImageStream((CameraImage img) {
+      _frameCounter++;
+      if (!_isSending && _frameCounter % _processFrameInterval == 0) {
+        _isSending = true;
+        MCPService.analyzeCameraFrame(img).then((_) {
+          _isSending = false;
+        }).catchError((e) {
+          print("Error analyzing frame: $e");
+          _isSending = false; // 發生錯誤也要重設標誌
+        });
+      }
+    });
 
     // 開始即時影像串流
     _controller!.startImageStream((CameraImage img) {
@@ -92,7 +92,8 @@ class _CameraViewState extends State<CameraView> {
     setState(() {}); // 更新 UI
 
     // 🔊 語音提示：相機已開啟
-    await _speechPlayer.speak("Camera open, long press to apeak, Where would you like to go Just say it out loud.");
+    await _speechPlayer.speak(
+        "Camera open, long press to apeak, Where would you like to go Just say it out loud.");
   }
 
   /// 2️⃣ 停止串流 & 釋放相機資源
@@ -105,7 +106,8 @@ class _CameraViewState extends State<CameraView> {
     setState(() {}); // 更新 UI
 
     // 🔊 語音提示：相機已關閉
-    await _speechPlayer.speak("Camera closed, We appreciate you using our app. thanks for your using");
+    await _speechPlayer.speak(
+        "Camera closed, We appreciate you using our app. thanks for your using");
   }
 
   @override
