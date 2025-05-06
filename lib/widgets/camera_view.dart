@@ -53,11 +53,27 @@ class _CameraViewState extends State<CameraView> {
         break;
       }
     }
+    
+    int _frameCounter = 0;
+    final int _processFrameInterval = 5; // 每 5 幀處理一次
+
+      _controller!.startImageStream((CameraImage img) {
+      _frameCounter++;
+      if (!_isSending && _frameCounter % _processFrameInterval == 0) {
+      _isSending = true;
+      MCPService.analyzeCameraFrame(img).then((_) {
+      _isSending = false;
+      }).catchError((e) {
+        print("Error analyzing frame: $e");
+        _isSending = false; // 發生錯誤也要重設標誌
+        });
+      }
+    });
 
     // 建立相機控制器
     _controller = CameraController(
       chosen, // 選定的鏡頭
-      ResolutionPreset.max, // 最高解析度
+      ResolutionPreset.medium, // 最高解析度
       enableAudio: false, // 關閉音訊
     );
     await _controller!.initialize(); // 初始化控制器
