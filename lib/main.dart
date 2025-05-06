@@ -39,7 +39,7 @@ class BlindAssistApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Blind Assist App', // 應用程式標題
+      title: 'GeminEye', // 應用程式標題
       debugShowCheckedModeBanner: false, // 移除 debug 標記
       home: StreamBuilder<User?>(
         // 監聽 Firebase 登入狀態

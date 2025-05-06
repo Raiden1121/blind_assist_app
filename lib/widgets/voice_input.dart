@@ -151,7 +151,7 @@ class _VoiceInputState extends State<VoiceInput> {
           width: 120,
           height: 120,
           child: FloatingActionButton(
-          backgroundColor: _isListening ? const Color.fromARGB(255, 219, 54, 54) : const Color.fromARGB(255, 169, 67, 67),
+          backgroundColor: _isListening ? const Color.fromARGB(255, 219, 54, 54) : const Color.fromARGB(255, 113, 52, 52),
           onPressed: () {}, // 👉 按鈕點擊事件不處理（用 Listener 控制）
           child: Icon(
             _isListening ? Icons.mic : Icons.mic_none,
