@@ -82,7 +82,7 @@ class _AssistHomePageState extends State<AssistHomePage> {
     // 初始化後執行
     Future.microtask(() async {
       // 播放啟動語音提示
-      await speechPlayer.speak("System started. Monitoring the environment.");
+      await speechPlayer.speak("System started. Double tap the screen to open camera.");
 
       // （示範用）寫入一筆資料到 Firestore
       try {
