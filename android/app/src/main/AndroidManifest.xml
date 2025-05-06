@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="blind_assist_app"
+        android:label="GeminEye"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
