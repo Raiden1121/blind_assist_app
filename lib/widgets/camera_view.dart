@@ -76,7 +76,7 @@ class _CameraViewState extends State<CameraView> {
     setState(() {}); // 更新 UI
 
     // 🔊 語音提示：相機已開啟
-    await _speechPlayer.speak("Camera open, Where would you like to go Just say it out loud.");
+    await _speechPlayer.speak("Camera open, long press to apeak, Where would you like to go Just say it out loud.");
   }
 
   /// 2️⃣ 停止串流 & 釋放相機資源
