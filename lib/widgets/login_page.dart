@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:blind_assist_app/services/auth_service.dart'; // 認證服務（自定義 AuthService）
+import 'package:firebase_auth/firebase_auth.dart'; // 引入 FirebaseAuthException
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -22,6 +23,21 @@ class _LoginPageState extends State<LoginPage> {
   final _pwdCtrl = TextEditingController(); // 密碼輸入控制器
   bool _loading = false; // 是否正在處理（登入／註冊中）
   String? _error; // 儲存錯誤訊息
+
+  /// 格式化 Firebase 錯誤訊息
+  String _formatAuthError(Object e) {
+    if (e is FirebaseAuthException) {
+      return e.message ?? 'Unknown error encountered.'; // 如果 message 是 null，給一個通用錯誤
+    }
+    // 對於其他類型的錯誤，嘗試移除常見的前綴
+    String errorMessage = e.toString();
+    if (errorMessage.startsWith("Exception: ")) {
+      errorMessage = errorMessage.substring("Exception: ".length);
+    }
+    // 你也可以用正則表達式移除 [firebase_auth/...] 這類標籤
+    // errorMessage = errorMessage.replaceAll(RegExp(r'^\[.*\]\s*'), '');
+    return errorMessage;
+  }
 
   /// 提交表單
   /// [signUp]：若為 true 則執行註冊，否則執行登入
