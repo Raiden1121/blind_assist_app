@@ -8,7 +8,7 @@
     <style>
         /* Base Styles */
         :root {
-            --primary: #4285F4;
+            --primary: #245B97;
             --primary-dark: #3367D6;
             --secondary: #34A853;
             --accent: #EA4335;
@@ -81,6 +81,14 @@
             font-weight: bold;
             position: relative;
             overflow: hidden;
+        }
+
+        .logo-icon img {
+            display: block;
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            /* 圖片會自動等比縮放，始終完整呈現 */
         }
 
         .logo-icon::before {
@@ -1082,7 +1090,9 @@
         <div class="container">
             <nav>
                 <div class="logo">
-                    <div class="logo-icon">C</div>
+                    <div class="logo-icon">
+                        <img src="assets/image/LogoCybolts.png" alt="CyBolts Logo" />
+                    </div>
                     CyBolts
                 </div>
                 <ul class="nav-links">
@@ -1258,9 +1268,12 @@
             <div class="footer-grid">
                 <div class="footer-col">
                     <div class="logo">
-                        <div class="logo-icon">C</div>
+                        <div class="logo-icon">
+                            <img src="assets/image/LogoCybolts.png" alt="CyBolts Logo" />
+                        </div>
                         CyBolts
                     </div>
+                    <br>
                     <p>Navigation solution for the visually impaired powered by Gemini AI and Google Maps.</p>
                     <div class="social-links">
                         <a href="#" class="social-link">f</a>
