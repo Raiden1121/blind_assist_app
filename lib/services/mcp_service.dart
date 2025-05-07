@@ -4,6 +4,7 @@
 // 1️⃣ 封裝與 MCP API 的 HTTP 呼叫（含 retry / timeout 機制）
 // 2️⃣ analyzeCameraFrame：送出影像 → 後端辨識 → 播語音
 // 3️⃣ handleUserCommand：送出指令 + 定位 → 後端導航 → 播語音
+// 4️⃣ analyzeCameraFrameRaw：將影像送到 API 分析 → 播語音 → 回傳 JSON 給前端顯示 danger 提示
 // =======================================================
 
 import 'package:http/http.dart' as http;
@@ -83,5 +84,26 @@ class MCPService {
     if (response != null && response['speech'] != null) {
       await speechPlayer.speak(response['speech']);
     }
+  }
+
+  /// 4️⃣ analyzeCameraFrameRaw
+  /// 功能：將影像送到 API 分析 → 播語音 → 回傳 JSON 給前端顯示 danger 提示
+  static Future<Map<String, dynamic>?> analyzeCameraFrameRaw(
+      CameraImage image) async {
+    // 模擬 danger 回應（⚠️ 測試用）
+    await speechPlayer.speak("It's a red light. Please stop.");
+    return {
+      "danger": true,
+      "speech": "It's a red light. Please stop.",
+    };
+
+    // 真實 API 呼叫（測試完記得還原）
+    /*
+  var response = await postWithRetry("/capture_and_analyze_scene", {});
+  if (response != null && response['speech'] != null) {
+    await speechPlayer.speak(response['speech']);
+  }
+  return response;
+  */
   }
 }
