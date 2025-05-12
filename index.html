@@ -83,6 +83,14 @@
             overflow: hidden;
         }
 
+        .logo-icon img {
+            display: block;
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            /* 圖片會自動等比縮放，始終完整呈現 */
+        }
+
         .logo-icon::before {
             content: "";
             position: absolute;
@@ -1082,8 +1090,10 @@
         <div class="container">
             <nav>
                 <div class="logo">
-                    <div class="logo-icon">G</div>
-                    GeminEye
+                    <div class="logo-icon">
+                        <img src="assets/image/LogoCybolts.png" alt="CyBolts Logo" />
+                    </div>
+                    CyBolts
                 </div>
                 <ul class="nav-links">
                     <li><a href="#features">Features</a></li>
@@ -1231,8 +1241,10 @@
             <div class="footer-grid">
                 <div class="footer-col">
                     <div class="logo">
-                        <div class="logo-icon">G</div>
-                        GeminEye
+                        <div class="logo-icon">
+                            <img src="assets/image/LogoCybolts.png" alt="CyBolts Logo" />
+                        </div>
+                        CyBolts
                     </div>
                     <div class="social-links">
                         <a href="https://github.com/Raiden1121/blind_assist_app.git" class="social-link">f</a>
