@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   camera: ^0.10.5+5
-  speech_to_text: ^6.3.0
   flutter_tts: ^3.8.3
   http: ^1.2.0
   location: ^5.0.0
@@ -22,6 +21,9 @@ dependencies:
   google_generative_ai: ^0.4.7
   grpc: ^3.0.0 # Check for latest version
   protobuf: ^3.0.0 # Check for latest version
+  flutter_sound: ^9.2.13       # 錄音功能（支援記憶體 buffer）
+  permission_handler: ^11.0.1  # 麥克風權限請求
+  http_parser: ^4.0.2          # 設定上傳的 Content-Type
   
   geolocator: ^11.0.0
 

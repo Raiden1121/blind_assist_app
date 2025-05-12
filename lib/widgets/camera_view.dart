@@ -140,8 +140,12 @@ class _CameraViewState extends State<CameraView> {
 
   /// ✅ 即時追蹤使用者位置
   void _startLocationUpdates() {
-    _positionSubscription =
-        Geolocator.getPositionStream().listen((Position position) {
+    _positionSubscription = Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.high, // 設置精度為高
+        distanceFilter: 1, // 當位置變動超過 1 米時才觸發更新
+      ),
+    ).listen((Position position) {
       setState(() {
         _latitude = position.latitude.toStringAsFixed(5);
         _longitude = position.longitude.toStringAsFixed(5);

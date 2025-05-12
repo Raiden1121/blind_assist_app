@@ -82,7 +82,8 @@ class _AssistHomePageState extends State<AssistHomePage> {
     // 初始化後執行
     Future.microtask(() async {
       // 播放啟動語音提示
-      await speechPlayer.speak("System started. Double tap the screen to open camera.");
+      await speechPlayer
+          .speak("System started. Double tap the screen to open camera.");
 
       // （示範用）寫入一筆資料到 Firestore
       try {
@@ -117,12 +118,6 @@ class _AssistHomePageState extends State<AssistHomePage> {
           const CameraView(), // 相機畫面
           Align(
             alignment: Alignment.bottomCenter,
-            child: VoiceInput(
-              onResult: (String text) async {
-                // 當語音輸入完成後，處理指令
-                await MCPService.handleUserCommand(text);
-              },
-            ),
           ),
         ],
       ),
