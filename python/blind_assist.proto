@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package geminilive;
+
+// Service definition for Gemini Live API interaction
+service GeminiLive {
+  // Bidirectional stream for continuous interaction with Gemini.
+  // The client streams text, image frames, and audio.
+  // The server streams back Gemini's responses (text, audio).
+  rpc ChatStream (stream ClientRequest) returns (stream ServerResponse);
+}
+
+// Message from client to server
+message ClientRequest {
+  oneof request_data {
+    InitialConfigRequest initial_config = 1; // To send model config, API keys etc. at the start
+    TextPart text_part = 2;                  // For text input from the client
+    ImagePart image_part = 3;                // For image data from the client
+    AudioPart client_audio_part = 4;         // For audio data from the client's microphone
+    bool end_of_turn = 5;                    // Client can explicitly signal the end of its turn
+  }
+}
+
+message InitialConfigRequest {
+  // model_name is optional; server can use a default if not provided.
+  string model_name = 1;
+  // response_modalities is optional; server can use defaults like ["AUDIO", "TEXT"].
+  repeated string response_modalities = 2;
+  // Client could potentially send its own API key if your architecture requires it,
+  // but typically the server would use its own configured API key.
+  // string api_key = 3;
+}
+
+message TextPart {
+  string text = 1;
+}
+
+message ImagePart {
+  bytes image_data = 1; // Raw image bytes (e.g., JPEG, PNG)
+  string mime_type = 2; // e.g., "image/jpeg", "image/png"
+}
+
+message AudioPart {
+  bytes audio_data = 1;    // Raw audio bytes
+  string mime_type = 2;    // e.g., "audio/pcm"
+  int32 sample_rate = 3;   // e.g., 16000 for client audio, 24000 for Gemini audio
+  // int32 channels = 4;   // Optional, if needed
+  // int32 bit_depth = 5;  // Optional, e.g., 16 for paInt16
+}
+
+// Message from server to client
+message ServerResponse {
+  oneof response_data {
+    TextPart text_part = 1;         // Text response from Gemini
+    AudioPart gemini_audio_part = 2; // Audio response from Gemini
+    ErrorPart error_part = 3;       // For sending error messages to the client
+    bool turn_complete = 4;         // Indicates Gemini has finished its current turn/response
+  }
+}
+
+message ErrorPart {
+  string message = 1;
+  int32 code = 2; // Optional error code
+}
