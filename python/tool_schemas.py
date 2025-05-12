@@ -18,6 +18,26 @@ geocode_decl = types.FunctionDeclaration(
     }
 )
 
+# Add this alongside your existing declarations
+reverse_geocode_decl = {
+    "name": "reverse_geocode",
+    "description": "Convert latitude and longitude coordinates into a human-readable address",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "lat": {
+                "type": "number",
+                "description": "Latitude coordinate"
+            },
+            "lng": {
+                "type": "number",
+                "description": "Longitude coordinate"
+            }
+        },
+        "required": ["lat", "lng"]
+    }
+}
+
 route_decl = types.FunctionDeclaration(
     name="compute_route",
     description="計算從起點到終點的路線步驟",
