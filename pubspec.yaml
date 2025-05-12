@@ -23,6 +23,8 @@ dependencies:
   grpc: ^3.0.0 # Check for latest version
   protobuf: ^3.0.0 # Check for latest version
   
+  geolocator: ^11.0.0
+
 
 
 
