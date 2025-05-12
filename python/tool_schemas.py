@@ -88,3 +88,18 @@ search_places_decl = {
         "required": ["query"]
     }
 }
+
+place_details_decl = types.FunctionDeclaration(
+    name="place_details",
+    description="Get detailed information about a place including opening hours, contact info, and reviews",
+    parameters={
+        "type": "object",
+        "properties": {
+            "place_id": {
+                "type": "string",
+                "description": "The Google Places API place_id of the location"
+            }
+        },
+        "required": ["place_id"]
+    }
+)

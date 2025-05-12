@@ -10,7 +10,8 @@ from tool_schemas import (
     geocode_decl,
     route_decl,
     reverse_geocode_decl,
-    search_places_decl
+    search_places_decl,
+    place_details_decl  # Add this
 )
 
 dotenv.load_dotenv()
@@ -40,7 +41,8 @@ routes_tool = [types.Tool(function_declarations=[
     route_decl,
     geocode_decl,
     reverse_geocode_decl,
-    search_places_decl
+    search_places_decl,
+    place_details_decl  # Add this
 ])]
 
 config = {
@@ -246,7 +248,57 @@ async def search_places(query: str,
     return places
 
 
+async def place_details(place_id: str) -> dict:
+    """
+    Get detailed information about a place using Google Places API Details
+    Args:
+        place_id: The unique place ID from Google Places API
+    Returns:
+        Dictionary containing place details including name, address, contact info, etc.
+    """
+    fields = [
+        "name", "formatted_address", "formatted_phone_number",
+        "opening_hours", "rating", "user_ratings_total", "reviews",
+        "website", "price_level", "wheelchair_accessible_entrance"
+    ]
+
+    async with httpx.AsyncClient(timeout=10) as c:
+        print(f"Getting details for place: {place_id}")  # debug
+        r = await c.get(
+            "https://maps.googleapis.com/maps/api/place/details/json",
+            params={
+                "place_id": place_id,
+                "key": MAP_KEY,
+                "language": "zh-TW",
+                "fields": ",".join(fields)
+            }
+        )
+    r.raise_for_status()
+
+    result = r.json().get("result", {})
+    if not result:
+        raise RuntimeError(f"No details found for place_id: {place_id}")
+
+    # Process reviews to make them more concise
+    if "reviews" in result:
+        result["reviews"] = [{
+            "rating": review.get("rating", 0),
+            "text": review.get("text", ""),
+            "time": review.get("relative_time_description", "")
+        } for review in result["reviews"]]
+
+    # Format opening hours if available
+    if "opening_hours" in result:
+        result["opening_hours"] = {
+            "open_now": result["opening_hours"].get("open_now", False),
+            "periods": result["opening_hours"].get("weekday_text", [])
+        }
+
+    return result
+
 # ───────── Recursive tool orchestration ─────────
+
+
 async def ask_llm(message):
     """
     Handles LLM interaction with function calling support
@@ -330,6 +382,18 @@ async def ask_llm(message):
                 )
                 return await ask_llm(fn_resp)
 
+            # Add in the function handling section of ask_llm
+            elif fn.name == "place_details":
+                try:
+                    details = await place_details(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="place_details",
+                        response=details
+                    )
+                    return await ask_llm(fn_resp)
+                except Exception as e:
+                    print(f"Error getting place details: {e}")
+                    return None, f"Error getting place details: {str(e)}"
         except Exception as e:
             print(f"Error in {fn.name}: {e}")
             return None, f"Error executing {fn.name}: {str(e)}"
