@@ -6,7 +6,12 @@ import dotenv
 import math
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
-from tool_schemas import geocode_decl, route_decl, reverse_geocode_decl
+from tool_schemas import (
+    geocode_decl,
+    route_decl,
+    reverse_geocode_decl,
+    search_places_decl
+)
 
 dotenv.load_dotenv()
 MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
@@ -34,7 +39,8 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
 routes_tool = [types.Tool(function_declarations=[
     route_decl,
     geocode_decl,
-    reverse_geocode_decl
+    reverse_geocode_decl,
+    search_places_decl
 ])]
 
 config = {
@@ -50,7 +56,7 @@ config = {
     "system_instruction": system_instruction
 }
 
-chat = client.chats.create(model="gemini-2.0-flash-001", config=config)
+chat = client.chats.create(model="gemini-1.5-pro", config=config)
 
 
 async def get_current_location() -> tuple[float, float]:
@@ -79,13 +85,10 @@ async def get_current_location() -> tuple[float, float]:
 # ───────── Google Maps helpers ─────────
 
 
-async def geocode_place(query: str,
-                        current_lat: float | None = None,
-                        current_lng: float | None = None) -> dict:
+async def geocode_place(query: str) -> dict:
     if query == "CURRENT_LOCATION":
-        if current_lat is None or current_lng is None:
-            raise ValueError(
-                "CURRENT_LOCATION requires current_lat & current_lng")
+        # Use the current location from the get_current_location function
+        current_lat, current_lng = await get_current_location()
         return {"lat": current_lat, "lng": current_lng}
 
     async with httpx.AsyncClient(timeout=10) as c:
@@ -192,126 +195,157 @@ async def compute_route(origin: str,
     return data["routes"][0]["legs"][0]["steps"]
 
 
+async def search_places(query: str,
+                        location: dict | None = None,
+                        radius: int | None = None) -> list[dict]:
+    """
+    Search for places using the Google Places API
+    Args:
+        query: Search text
+        location: Optional dict with lat/lng
+        radius: Optional search radius in meters (max 50000)
+    Returns:
+        List of places with details
+    """
+    params = {
+        "query": query,
+        "key": MAP_KEY,
+        "language": "zh-TW"
+    }
+
+    # Add location and radius if provided
+    if location and "lat" in location and "lng" in location:
+        params["location"] = f"{location['lat']},{location['lng']}"
+        if radius:
+            params["radius"] = min(radius, 50000)  # Cap at 50km
+
+    async with httpx.AsyncClient(timeout=10) as c:
+        print(f"Searching places: {query}")  # debug
+        r = await c.get(
+            "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            params=params
+        )
+    r.raise_for_status()
+
+    results = r.json().get("results", [])
+    if not results:
+        return []
+
+    places = []
+    for place in results:
+        places.append({
+            "name": place.get("name", ""),
+            "formatted_address": place.get("formatted_address", ""),
+            "location": place["geometry"]["location"],
+            "place_id": place.get("place_id", ""),
+            "types": place.get("types", []),
+            "rating": place.get("rating"),
+            "user_ratings_total": place.get("user_ratings_total")
+        })
+
+    return places
+
+
 # ───────── Recursive tool orchestration ─────────
 async def ask_llm(message):
     """
-    • message   : str  – user prompt  OR
-                  types.Content – function response
-    • returns   : (steps | None, str LLM_text)
+    Handles LLM interaction with function calling support
+
+    Args:
+        message: str | types.Content | types.FunctionResponse | types.Part
+            - str: Direct user input
+            - types.Content: Structured content from previous response
+            - types.FunctionResponse: Result from tool function call
+            - types.Part: Individual message part
+
+    Returns:
+        tuple[list[dict] | None, str]:
+            - First element: Route steps if navigation, else None
+            - Second element: Text response from LLM
     """
-    # Print for debugging what's being sent to the model
     print(f"Sending to model: {type(message)}",
           message if isinstance(message, str) else "Function response")
 
     # Handle different message types
     if isinstance(message, types.Content):
-        # Extract the parts from Content and send them individually
         parts = message.parts
-        if parts and len(parts) > 0:
-            resp = chat.send_message(parts[0])
-        else:
-            resp = chat.send_message("Empty content")
+        resp = chat.send_message(parts[0] if parts else "Empty content")
     elif isinstance(message, types.FunctionResponse):
-        # Create a proper Part with function_response
-        part = types.Part(function_response=message)
-        resp = chat.send_message(part)
+        resp = chat.send_message(types.Part(function_response=message))
     elif isinstance(message, types.Part):
-        # Send Part directly
         resp = chat.send_message(message)
     else:
-        # For string input
         resp = chat.send_message(message)
-    print("Response type:", type(resp))
 
-    # Check if there are any candidates
     if not resp.candidates:
         print("No candidates in response")
         return None, "No response from model"
 
     part = resp.candidates[0].content.parts[0]
-    print("Part type:", type(part))
 
-    # Check for function calls
+    # Handle function calls
     if hasattr(part, 'function_call') and part.function_call:
         fn = part.function_call
         print(f"Function call detected: {fn.name}")
 
-        if fn.name == "geocode_place":
-            if fn.args.get("query") == "CURRENT_LOCATION":
-                # 如果 LLM 沒帶經緯度 → 我們自己取
-                if "current_lat" not in fn.args or "current_lng" not in fn.args:
-                    lat, lng = await get_current_location()
-                    fn.args["current_lat"] = lat
-                    fn.args["current_lng"] = lng
-
-            geo = await geocode_place(**fn.args)
-            print("Geocode result:", geo)
-
-            # Create a FunctionResponse
-            fn_resp = types.FunctionResponse(name="geocode_place",
-                                             response=geo)
-            print("FunctionResponse:", fn_resp)
-            # Send the function response back to model
-            return await ask_llm(fn_resp)
-        # Add this inside the if hasattr(part, 'function_call') block in ask_llm
-        elif fn.name == "reverse_geocode":
-            try:
-                address_info = await reverse_geocode(**fn.args)
-                print("Reverse geocode result:", address_info)
-
+        try:
+            if fn.name == "geocode_place":
+                geo = await geocode_place(**fn.args)
                 fn_resp = types.FunctionResponse(
-                    name="reverse_geocode",
-                    response=address_info
+                    name="geocode_place",
+                    response=geo
                 )
                 return await ask_llm(fn_resp)
-            except Exception as e:
-                print(f"Error in reverse geocoding: {e}")
-            return None, f"Error getting address: {str(e)}"
-        elif fn.name == "compute_route":
-            try:
+
+            elif fn.name == "reverse_geocode":
+                address = await reverse_geocode(**fn.args)
+                fn_resp = types.FunctionResponse(
+                    name="reverse_geocode",
+                    response=address
+                )
+                return await ask_llm(fn_resp)
+
+            elif fn.name == "compute_route":
                 steps = await compute_route(**fn.args)
-                print(f"Got route with {len(steps)} steps")
+                fn_resp = types.FunctionResponse(
+                    name="compute_route",
+                    response={"steps": steps}
+                )
+                nav = chat.send_message(types.Part(function_response=fn_resp))
 
-                # Create a FunctionResponse
-                fn_resp = types.FunctionResponse(name="compute_route",
-                                                 response={
-                                                     "steps": steps
-                                                 })
-
-                # Send to model and get navigation instructions
-                part = types.Part(function_response=message)
-                nav = chat.send_message(part)
-
-                # Check if there's text in the response
                 if nav.candidates and nav.candidates[0].content.parts:
-                    text_parts = [
-                        p.text for p in nav.candidates[0].content.parts
-                        if hasattr(p, 'text') and p.text
-                    ]
+                    text_parts = [p.text for p in nav.candidates[0].content.parts
+                                  if hasattr(p, 'text') and p.text]
                     nav_text = " ".join(
                         text_parts) if text_parts else "No text in response"
                 else:
                     nav_text = "No response text available"
-
                 return steps, nav_text
-            except Exception as e:
-                print(f"Error computing route: {e}")
-                return None, f"Error computing route: {e}"
 
-    # Check if there's text in the part
+            elif fn.name == "search_places":
+                places = await search_places(**fn.args)
+                fn_resp = types.FunctionResponse(
+                    name="search_places",
+                    response={"places": places}
+                )
+                return await ask_llm(fn_resp)
+
+        except Exception as e:
+            print(f"Error in {fn.name}: {e}")
+            return None, f"Error executing {fn.name}: {str(e)}"
+
+    # Handle text responses
     if hasattr(part, 'text') and part.text:
         return None, part.text
 
-    # Try to extract any text parts
+    # Try to extract text from parts
     if hasattr(resp.candidates[0].content, 'parts'):
-        text_parts = [
-            p.text for p in resp.candidates[0].content.parts
-            if hasattr(p, 'text') and p.text
-        ]
+        text_parts = [p.text for p in resp.candidates[0].content.parts
+                      if hasattr(p, 'text') and p.text]
         if text_parts:
             return None, " ".join(text_parts)
 
-    # If we can't extract text, check if there's any content that can be converted to string
+    # Fallback to string conversion
     try:
         return None, str(resp)
     except:

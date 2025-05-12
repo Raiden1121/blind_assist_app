@@ -1,18 +1,17 @@
 from google.genai import types
 
 # tool_schemas.py －－ 交給 Gemini 的 JSON‑Schema
+
 geocode_decl = types.FunctionDeclaration(
     name="geocode_place",
-    description="Convert a place name to lat,lng, or return the given lat,lng if the query is CURRENT_LOCATION.",
+    description="Convert a place name to lat,lng, or return the current location if the query is CURRENT_LOCATION.",
     parameters={
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
-                "description": "要查詢的地址或地點名稱"
-            },
-            "current_lat": {"type": "number", "description": "latitude if query==CURRENT_LOCATION"},
-            "current_lng": {"type": "number", "description": "longitude if query==CURRENT_LOCATION"},
+                "description": "place name or CURRENT_LOCATION"
+            }
         },
         "required": ["query"]
     }
@@ -61,3 +60,31 @@ route_decl = types.FunctionDeclaration(
         "required": ["origin", "destination"]
     }
 )
+
+# Add to your existing schemas
+search_places_decl = {
+    "name": "search_places",
+    "description": "Search for places using text query, optionally filtered by location and radius",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Search text query"
+            },
+            "location": {
+                "type": "object",
+                "properties": {
+                    "lat": {"type": "number"},
+                    "lng": {"type": "number"}
+                },
+                "description": "Optional center point for location-based search"
+            },
+            "radius": {
+                "type": "number",
+                "description": "Optional search radius in meters (max 50000)"
+            }
+        },
+        "required": ["query"]
+    }
+}
