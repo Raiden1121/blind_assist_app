@@ -1,8 +1,12 @@
-import os, json, asyncio, httpx, dotenv, math
+import os
+import json
+import asyncio
+import httpx
+import dotenv
+import math
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
-from tool_schemas import geocode_decl, route_decl
-import geocoder
+from tool_schemas import geocode_decl, route_decl, reverse_geocode_decl
 
 dotenv.load_dotenv()
 MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
@@ -27,7 +31,11 @@ system_instruction = """
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
 
-routes_tool = [types.Tool(function_declarations=[route_decl, geocode_decl])]
+routes_tool = [types.Tool(function_declarations=[
+    route_decl,
+    geocode_decl,
+    reverse_geocode_decl
+])]
 
 config = {
     "tools": routes_tool,  # FunctionCall schema
@@ -43,6 +51,7 @@ config = {
 }
 
 chat = client.chats.create(model="gemini-2.0-flash-001", config=config)
+
 
 async def get_current_location() -> tuple[float, float]:
     """
@@ -68,6 +77,8 @@ async def get_current_location() -> tuple[float, float]:
     # raise RuntimeError("Unable to get current location")
 
 # ───────── Google Maps helpers ─────────
+
+
 async def geocode_place(query: str,
                         current_lat: float | None = None,
                         current_lng: float | None = None) -> dict:
@@ -92,6 +103,47 @@ async def geocode_place(query: str,
         raise RuntimeError("No location found")
 
     return {"lat": loc["lat"], "lng": loc["lng"]}
+
+# Add this after the existing geocode_place function
+
+
+async def reverse_geocode(lat: float, lng: float) -> dict:
+    """
+    Convert latitude and longitude coordinates into a human-readable address.
+    Returns a dictionary containing address components.
+    """
+    async with httpx.AsyncClient(timeout=10) as c:
+        print(f"Reverse geocoding coordinates: {lat}, {lng}")  # debug
+        r = await c.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={
+                "latlng": f"{lat},{lng}",
+                "key": MAP_KEY,
+                "language": "zh-TW"  # Set to Traditional Chinese to match your system
+            }
+        )
+    r.raise_for_status()
+
+    result = r.json()
+    if not result.get("results"):
+        raise RuntimeError("No address found for these coordinates")
+
+    location_data = result["results"][0]
+
+    # Extract useful address components
+    address_components = {
+        "formatted_address": location_data.get("formatted_address", ""),
+        "place_id": location_data.get("place_id", ""),
+        "types": location_data.get("types", []),
+        "components": {}
+    }
+
+    # Process individual address components
+    for component in location_data.get("address_components", []):
+        for type in component["types"]:
+            address_components["components"][type] = component["long_name"]
+
+    return address_components
 
 
 async def compute_route(origin: str,
@@ -129,10 +181,12 @@ async def compute_route(origin: str,
         r = await c.post(url, headers=hdr, json=body)
     r.raise_for_status()
     data = r.json()
-    
-    print("Distance: ", data["routes"][0]["distanceMeters"]/1000, "km")  # debug
-    print("Duration: ", int(data["routes"][0]["duration"][:-1])/60, "mins")  # debug
-    
+
+    print("Distance: ", data["routes"][0]
+          ["distanceMeters"]/1000, "km")  # debug
+    print("Duration: ", int(data["routes"][0]
+          ["duration"][:-1])/60, "mins")  # debug
+
     if not data.get("routes"):
         raise RuntimeError("No route found")
     return data["routes"][0]["legs"][0]["steps"]
@@ -189,7 +243,7 @@ async def ask_llm(message):
                     lat, lng = await get_current_location()
                     fn.args["current_lat"] = lat
                     fn.args["current_lng"] = lng
-                    
+
             geo = await geocode_place(**fn.args)
             print("Geocode result:", geo)
 
@@ -199,7 +253,20 @@ async def ask_llm(message):
             print("FunctionResponse:", fn_resp)
             # Send the function response back to model
             return await ask_llm(fn_resp)
+        # Add this inside the if hasattr(part, 'function_call') block in ask_llm
+        elif fn.name == "reverse_geocode":
+            try:
+                address_info = await reverse_geocode(**fn.args)
+                print("Reverse geocode result:", address_info)
 
+                fn_resp = types.FunctionResponse(
+                    name="reverse_geocode",
+                    response=address_info
+                )
+                return await ask_llm(fn_resp)
+            except Exception as e:
+                print(f"Error in reverse geocoding: {e}")
+            return None, f"Error getting address: {str(e)}"
         elif fn.name == "compute_route":
             try:
                 steps = await compute_route(**fn.args)
@@ -250,6 +317,7 @@ async def ask_llm(message):
     except:
         return None, "Could not extract text from response"
 
+
 async def chatbot_conversation(user_input: str):
     steps, response = await ask_llm(user_input)
     return response
@@ -260,12 +328,12 @@ if __name__ == "__main__":
     # steps, first = asyncio.run(ask_llm("請帶我走路去中壢車站"))
     # steps, first = asyncio.run(ask_llm("幫我寫merge_sort"))
     print("視障者助手已啟動。輸入 'exit' 結束對話。")
-    
+
     while True:
         user_input = input("您: ")
         if user_input.lower() in ['exit', 'quit', '結束', '退出']:
             print("助手: 再見！")
             break
-            
+
         response = asyncio.run(chatbot_conversation(user_input))
         print(f"助手: {response}")
