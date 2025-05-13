@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package geminiChat;
+
+// import "google/protobuf/timestamp.proto";
+
+// 定義 Gemini Chat 服務
+service GeminiChat {
+  // 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
+  rpc ChatStream(stream ChatRequest) returns (stream ChatResponse);
+  
+  // 單次請求/回應也可保留
+  // rpc ChatOnce(ChatRequest) returns (ChatResponse);
+}
+
+// 音訊輸入訊息
+message AudioInput {
+  // 原始音訊二進位資料 (例如 WAV/PCM)
+  bytes data = 1;
+  // 音訊格式 (e.g. "wav", "pcm")
+  string format = 2;
+  // 取樣率 (Hz)
+  int32 sample_rate_hz = 3;
+  // 時間戳 (可選，用於同步)
+  // google.protobuf.Timestamp timestamp = 4;
+}
+
+// 影像輸入訊息
+message ImageInput {
+  // 原始影像二進位資料 (例如 JPEG/PNG)
+  bytes data = 1;
+  // 影像格式 (e.g. "jpeg", "png")
+  string format = 2;
+  // 影像解析度 (像素寬)
+  int32 width = 3;
+  // 影像解析度 (像素高)
+  int32 height = 4;
+  // 時間戳 (可選，用於同步)
+  // google.protobuf.Timestamp timestamp = 5;
+}
+
+// 輸入訊息封包：音訊或影像（或文字）
+message ChatRequest {
+  // 可擴充：如果未來要加文字或其他類型也能放這裡
+  oneof input {
+    AudioInput audio = 1;
+    ImageInput image = 2;
+    // string text = 3;
+  }
+  // 客戶端 request Id (可選，用於追蹤)
+  string request_id = 10;
+}
+
+message NavigationResponse {
+  // alert 的文字訊息
+  string alert = 1;
+  // nav_status：導航是否啟動
+  bool nav_status = 2;
+  // nav_description：導航的詳細描述
+  string nav_description = 3;
+}
+
+message ChatResponse {
+  // 對應你的 JSON 物件
+  NavigationResponse nav = 1;
+  // （如果有文字回應也要保留）
+  // string text = 2;
+  // response 時間戳（選填）
+  // google.protobuf.Timestamp timestamp = 3;
+  // 對應 request_id
+  string request_id = 4;
+}
+
+

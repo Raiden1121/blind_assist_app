@@ -8,6 +8,6 @@ protoc.main(
         "-I./",
         "--python_out=.",
         "--grpc_python_out=.",
-        "./blind_assist.proto",
+        "./gemini_chat.proto",
     )
 )
