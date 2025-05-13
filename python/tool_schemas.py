@@ -45,16 +45,16 @@ route_decl = types.FunctionDeclaration(
         "properties": {
             "origin": {
                 "type": "string",
-                "description": "起點座標，格式為 'lat,lng'"
+                "description": "starting location, formatted as 'lat,lng'"
             },
             "destination": {
                 "type": "string",
-                "description": "終點座標，格式為 'lat,lng'"
+                "description": "destination location, formatted as 'lat,lng'"
             },
             "mode": {
                 "type": "string",
                 "enum": ["WALK", "DRIVE", "TRANSIT"],
-                "description": "交通方式"
+                "description": "transportation mode"
             }
         },
         "required": ["origin", "destination"]
