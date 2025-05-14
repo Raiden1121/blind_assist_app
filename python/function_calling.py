@@ -10,6 +10,7 @@ from google.genai import types  # FunctionCall / Content
 from tool_schemas import *
 from dataclasses import dataclass
 from typing import Optional, List
+import traceback
 dotenv.load_dotenv()
 MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 # Replace existing system_instruction with:
@@ -48,14 +49,17 @@ Your responsibilities:
    - User requests to stop navigation
    - User has arrived at destination
    - Navigation needs to be cancelled
+   - Other situations where navigation should end
+6. Call restart_navigation when:
    - User deviates from the route (get_current_step returns None)
    - User requests to change route or go to a different location (ask first)
-   - Other situations where navigation should end
+
 
 Call get_current_location to get the user's current location if you cannot determine it.
 You should use functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
 You should call get_current_step to get the current step of the route if you cannot determine which step the user is currently on.
 Keep instructions brief and clear. Focus on immediate next steps and safety.
+When the user request to go to a different location, you should use other functions to determine the locations first then call restart_navigation with new coordinate.
 
 Important: Don't call multiple functions at the same time. Afer calling end_navigation you should end current turn immediately and do nothing else.
 Respond with text instructions only in final output and nothing else (in the language of user input).
@@ -81,8 +85,9 @@ navigating_routes_tool = [types.Tool(function_declarations=[
     search_places_decl,
     place_details_decl,
     end_navigation_decl,
-    get_current_step_decl,     # Add this line
-    get_current_location_decl  # Add this line
+    get_current_step_decl,
+    get_current_location_decl,
+    restart_navigation_decl     # Add this line
 ])]
 MODEL = "gemini-2.0-flash"
 
@@ -410,7 +415,18 @@ async def end_navigation() -> None:
     chat = chat_manager.create_idle_chat()  # Reset to idle chat
     return
 
+new_destination = None
 
+
+async def restart_navigation(new_location) -> None:
+    """
+    Set a new destination and abort current navigation
+    """
+    global new_destination, chat
+    await end_navigation()
+    new_destination = new_location
+    print("Navigation restarted, new coordinate is "+new_destination)  # debug
+    return
 # ───────── Recursive tool orchestration ─────────
 
 
@@ -580,6 +596,17 @@ async def ask_llm(message, image=None, images=None):
                         response={"lat": location[0], "lng": location[1]}
                     )
                     return await ask_llm(fn_resp)
+                elif fn.name == "restart_navigation":
+                    try:
+                        result = await restart_navigation(**fn.args)
+                        fn_resp = types.FunctionResponse(
+                            name="restart_navigation",
+                            response=result
+                        )
+                        return await ask_llm(fn_resp)
+                    except Exception as e:
+                        print(f"Error restarting navigation: {e}")
+                        return None, f"Error restarting navigation: {str(e)}"
             except Exception as e:
                 print(f"Error in {fn.name}: {e}")
                 return None, f"Error executing {fn.name}: {str(e)}"
@@ -602,17 +629,23 @@ async def ask_llm(message, image=None, images=None):
             return None, "Could not extract text from response"
     except Exception as e:
         print(f"Error in ask_llm: {e}")
+        print(traceback.format_exc())
         return None, f"Error in ask_llm: {str(e)}"
 
 
 async def chatbot_conversation(user_input: str):
-    global chat, navigation_state
+    global chat, navigation_state, new_destination, mode_swicthed
     location = await get_current_location()
 
     if navigation_state.status == "Navigating":
         # If in navigation mode, use the current step for context
         navigation_state.current_step = deviation.get_current_step(
             location[0], location[1], navigation_state.current_route, 20)
+
+    if new_destination:
+        # If a new destination is set, use it for geocoding
+        user_input = f"go to coordinat [{new_destination}]"
+        new_destination = None
 
     response = await ask_llm(user_input)
 

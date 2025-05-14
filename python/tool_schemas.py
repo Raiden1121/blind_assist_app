@@ -144,3 +144,19 @@ get_current_location_decl = types.FunctionDeclaration(
         "required": []
     }
 )
+
+# ...existing code...
+restart_navigation_decl = {
+    "name": "restart_navigation",
+    "description": "Set a new destination and abort current navigation",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "new_location": {
+                "type": "string",
+                "description": "The new destination location to navigate to, formatted as 'lat,lng'"
+            }
+        },
+        "required": ["new_location"]
+    }
+}
