@@ -14,6 +14,7 @@ import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:blind_assist_app/services/mcp_service.dart';
 import 'package:blind_assist_app/widgets/speech_player.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class CameraView extends StatefulWidget {
   const CameraView({Key? key}) : super(key: key);
@@ -26,6 +27,7 @@ class _CameraViewState extends State<CameraView> {
   String _latitude = "";
   String _longitude = "";
   bool _isNavigating = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   CameraController? _controller;
   bool _isSending = false;
@@ -88,6 +90,12 @@ class _CameraViewState extends State<CameraView> {
               _dangerMessage = response['speech'] ?? "Danger detected!";
               _showDanger = true;
             });
+
+            // ✅ 播放警告音效
+            await _audioPlayer.play(AssetSource('assets/sounds/alarm.mp3'));
+            // ✅ 播放語音提示
+            await _speechPlayer.speak("There is an obstacle ahead.");
+
             await Future.delayed(const Duration(seconds: 3));
             setState(() => _showDanger = false);
           }

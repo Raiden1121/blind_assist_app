@@ -24,6 +24,7 @@ dependencies:
   flutter_sound: ^9.2.13       # 錄音功能（支援記憶體 buffer）
   permission_handler: ^11.0.1  # 麥克風權限請求
   http_parser: ^4.0.2          # 設定上傳的 Content-Type
+  audioplayers: ^5.2.1
   
   geolocator: ^11.0.0
 
@@ -44,4 +45,6 @@ flutter:
   assets:
     - assets/image/google_logo.png
     - assets/image/GeminEye_Logo.png
+    - assets/sounds/alarm.mp3
+
   uses-material-design: true
