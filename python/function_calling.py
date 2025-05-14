@@ -4,6 +4,7 @@ import asyncio
 import httpx
 import dotenv
 import math
+import deviation
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
 from tool_schemas import *
@@ -28,8 +29,9 @@ For location-related requests:
 
 For non-navigation questions, respond directly without using tool functions.
 
-Important: When users mention "my current location" or "I'm here", use geocode_place with query="CURRENT_LOCATION".
+Important: Use geocode_place with query="CURRENT_LOCATION" to get current user location if needed.
 Call only one function at a time and wait for its result before deciding the next step.
+Respond in plain text format for user to hear.
 """
 
 
@@ -51,6 +53,7 @@ Your responsibilities:
 
 Keep instructions brief and clear. Focus on immediate next steps and safety.
 Call only one function at a time and wait for its result.
+Respond in plain text format for user to hear.
 """
 
 
@@ -356,7 +359,7 @@ async def start_navigation() -> None:
 
     navigation_state.status = "Navigating"
     navigation_state.current_step = navigation_state.current_route.get("legs", [{}])[
-        0].get("steps", [])
+        0].get("steps", [])[0]  # Get the first step
 
     # Create new chat with navigation context
     chat = chat_manager.create_navigation_chat(navigation_state.current_route)
@@ -385,7 +388,7 @@ async def end_navigation() -> None:
 # ───────── Recursive tool orchestration ─────────
 
 
-async def ask_llm(message):
+async def ask_llm(message, image=None, images=None):
     """
     Handles LLM interaction with function calling support
 
@@ -401,145 +404,177 @@ async def ask_llm(message):
             - First element: Route steps if navigation, else None
             - Second element: Text response from LLM
     """
+
     print(f"Sending to model: {type(message)}",
           message if isinstance(message, str) else "Function response")
 
-    # Handle different message types
-    if isinstance(message, types.Content):
-        parts = message.parts
-        resp = chat.send_message(parts[0] if parts else "Empty content")
-    elif isinstance(message, types.FunctionResponse):
-        resp = chat.send_message(types.Part(function_response=message))
-    elif isinstance(message, types.Part):
-        resp = chat.send_message(message)
-    else:
-        resp = chat.send_message(message)
-
-    if not resp.candidates:
-        print("No candidates in response")
-        return None, "No response from model"
-
-    part = resp.candidates[0].content.parts[0]
-
-    # Handle function calls
-    if hasattr(part, 'function_call') and part.function_call:
-        fn = part.function_call
-        print(f"Function call detected: {fn.name}")
-
-        try:
-            if fn.name == "geocode_place":
-                geo = await geocode_place(**fn.args)
-                fn_resp = types.FunctionResponse(
-                    name="geocode_place",
-                    response=geo
-                )
-                return await ask_llm(fn_resp)
-
-            elif fn.name == "reverse_geocode":
-                address = await reverse_geocode(**fn.args)
-                fn_resp = types.FunctionResponse(
-                    name="reverse_geocode",
-                    response=address
-                )
-                return await ask_llm(fn_resp)
-
-            elif fn.name == "compute_route":
-                steps = await compute_route(**fn.args)
-                fn_resp = types.FunctionResponse(
-                    name="compute_route",
-                    response={"steps": steps}
-                )
-                nav = chat.send_message(types.Part(function_response=fn_resp))
-
-                if nav.candidates and nav.candidates[0].content.parts:
-                    text_parts = [p.text for p in nav.candidates[0].content.parts
-                                  if hasattr(p, 'text') and p.text]
-                    nav_text = " ".join(
-                        text_parts) if text_parts else "No text in response"
-                else:
-                    nav_text = "No response text available"
-                return steps, nav_text
-
-            elif fn.name == "search_places":
-                places = await search_places(**fn.args)
-                fn_resp = types.FunctionResponse(
-                    name="search_places",
-                    response={"places": places}
-                )
-                return await ask_llm(fn_resp)
-
-            elif fn.name == "place_details":
-                try:
-                    details = await place_details(**fn.args)
-                    fn_resp = types.FunctionResponse(
-                        name="place_details",
-                        response=details
-                    )
-                    return await ask_llm(fn_resp)
-                except Exception as e:
-                    print(f"Error getting place details: {e}")
-                    return None, f"Error getting place details: {str(e)}"
-
-            elif fn.name == "start_navigation":
-                try:
-                    result = await start_navigation(**fn.args)
-                    fn_resp = types.FunctionResponse(
-                        name="start_navigation",
-                        response=result
-                    )
-                    return await ask_llm(fn_resp)
-                except Exception as e:
-                    print(f"Error starting navigation: {e}")
-                    return None, f"Error starting navigation: {str(e)}"
-
-            elif fn.name == "end_navigation":
-                try:
-                    result = await end_navigation(**fn.args)
-                    fn_resp = types.FunctionResponse(
-                        name="end_navigation",
-                        response=result
-                    )
-                    return await ask_llm(fn_resp)
-                except Exception as e:
-                    print(f"Error ending navigation: {e}")
-                    return None, f"Error ending navigation: {str(e)}"
-        except Exception as e:
-            print(f"Error in {fn.name}: {e}")
-            return None, f"Error executing {fn.name}: {str(e)}"
-
-    # Handle text responses
-    if hasattr(part, 'text') and part.text:
-        return None, part.text
-
-    # Try to extract text from parts
-    if hasattr(resp.candidates[0].content, 'parts'):
-        text_parts = [p.text for p in resp.candidates[0].content.parts
-                      if hasattr(p, 'text') and p.text]
-        if text_parts:
-            return None, " ".join(text_parts)
-
-    # Fallback to string conversion
     try:
-        return None, str(resp)
-    except:
-        return None, "Could not extract text from response"
+        # Handle different message types
+        if isinstance(message, types.Content):
+            parts = message.parts
+            resp = chat.send_message(parts[0] if parts else "Empty content")
+        elif isinstance(message, types.FunctionResponse):
+            resp = chat.send_message(types.Part(function_response=message))
+        elif isinstance(message, types.Part):
+            resp = chat.send_message(message)
+        elif isinstance(message, str) and (image is not None or images is not None):
+            message_parts = []
+            message_parts.append(message)
 
+            if image is not None:
+                print(f"Adding single image: {len(image)} bytes")
+                message_parts.append(types.Part.from_bytes(
+                    data=image, mime_type="image/jpeg"))
+            elif images is not None:
+                if isinstance(images, bytes):
+                    print(
+                        f"Adding single image from images param: {len(images)} bytes")
+                    message_parts.append(types.Part.from_bytes(
+                        data=images, mime_type="image/jpeg"))
+                else:
+                    print(f"Adding {len(images)} images")
+                    for i, img in enumerate(images):
+                        if img:
+                            print(f"  Adding image {i+1}: {len(img)} bytes")
+                            message_parts.append(types.Part.from_bytes(
+                                data=img, mime_type="image/jpeg"))
+            resp = chat.send_message(message_parts)
+        else:
+            resp = chat.send_message(message)
 
-async def chatbot_conversation(user_input: str):
-    steps, response = await ask_llm(user_input)
-    return response
+        if not resp.candidates:
+            print("No candidates in response")
+            return None, "No response from model"
+
+        part = resp.candidates[0].content.parts[0]
+
+        # Handle function calls
+        if hasattr(part, 'function_call') and part.function_call:
+            fn = part.function_call
+            print(f"Function call detected: {fn.name}")
+
+            try:
+                if fn.name == "geocode_place":
+                    geo = await geocode_place(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="geocode_place",
+                        response=geo
+                    )
+                    return await ask_llm(fn_resp)
+
+                elif fn.name == "reverse_geocode":
+                    address = await reverse_geocode(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="reverse_geocode",
+                        response=address
+                    )
+                    return await ask_llm(fn_resp)
+
+                elif fn.name == "compute_route":
+                    steps = await compute_route(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="compute_route",
+                        response={"steps": steps}
+                    )
+                    # print("Route steps:", steps)  # debug
+                    nav = chat.send_message(
+                        types.Part(function_response=fn_resp))
+
+                    if nav.candidates and nav.candidates[0].content.parts:
+                        text_parts = [p.text for p in nav.candidates[0].content.parts
+                                      if hasattr(p, 'text') and p.text]
+                        nav_text = " ".join(
+                            text_parts) if text_parts else "No text in response"
+                    else:
+                        nav_text = "No response text available"
+                    return steps, nav_text
+
+                elif fn.name == "search_places":
+                    places = await search_places(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="search_places",
+                        response={"places": places}
+                    )
+                    return await ask_llm(fn_resp)
+
+                # Add in the function handling section of ask_llm
+                elif fn.name == "place_details":
+                    try:
+                        details = await place_details(**fn.args)
+                        fn_resp = types.FunctionResponse(
+                            name="place_details",
+                            response=details
+                        )
+                        return await ask_llm(fn_resp)
+                    except Exception as e:
+                        print(f"Error getting place details: {e}")
+                        return None, f"Error getting place details: {str(e)}"
+                elif fn.name == "start_navigation":
+                    try:
+                        result = await start_navigation(**fn.args)
+                        fn_resp = types.FunctionResponse(
+                            name="start_navigation",
+                            response=result
+                        )
+                        return await ask_llm(fn_resp)
+                    except Exception as e:
+                        print(f"Error starting navigation: {e}")
+                        return None, f"Error starting navigation: {str(e)}"
+
+                elif fn.name == "end_navigation":
+                    try:
+                        result = await end_navigation(**fn.args)
+                        fn_resp = types.FunctionResponse(
+                            name="end_navigation",
+                            response=result
+                        )
+                        return await ask_llm(fn_resp)
+                    except Exception as e:
+                        print(f"Error ending navigation: {e}")
+                        return None, f"Error ending navigation: {str(e)}"
+            except Exception as e:
+                print(f"Error in {fn.name}: {e}")
+                return None, f"Error executing {fn.name}: {str(e)}"
+
+        # Handle text responses
+        if hasattr(part, 'text') and part.text:
+            return None, part.text
+
+        # Try to extract text from parts
+        if hasattr(resp.candidates[0].content, 'parts'):
+            text_parts = [p.text for p in resp.candidates[0].content.parts
+                          if hasattr(p, 'text') and p.text]
+            if text_parts:
+                return None, " ".join(text_parts)
+
+        # Fallback to string conversion
+        try:
+            return None, str(resp)
+        except:
+            return None, "Could not extract text from response"
+    except Exception as e:
+        print(f"Error in ask_llm: {e}")
+        return None, f"Error in ask_llm: {str(e)}"
 
 
 async def chatbot_conversation(user_input: str):
     global chat, navigation_state
+    location = await get_current_location()
 
-    steps, response = await ask_llm(user_input)
+    info = "Current User Location: " + str(location) + "\n"
+    if navigation_state.status == "Navigating":
+        # If in navigation mode, use the current step for context
+        navigation_state.current_step = deviation.get_current_step(
+            location[0], location[1], navigation_state.current_route, 20)
+        info += "\n"+"Current Step: "+str(navigation_state.current_step)+"\n"
+
+    response = await ask_llm(info+user_input)
 
     # Print mode-specific status
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
     print(f"[Mode: {mode}]")  # debug
 
-    return response
+    return response[1]
 
 if __name__ == "__main__":
     print("視障者助手已啟動。輸入 'exit' 結束對話。")
