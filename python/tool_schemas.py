@@ -4,13 +4,13 @@ from google.genai import types
 
 geocode_decl = types.FunctionDeclaration(
     name="geocode_place",
-    description="Convert a place name to lat,lng, or return the current location if the query is CURRENT_LOCATION.",
+    description="Convert a address or place name to lat,lng. unless it's a well-known place or explicit address, you should use search_places to get a list of possible matches first",
     parameters={
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
-                "description": "place name or CURRENT_LOCATION"
+                "description": "address or place name"
             }
         },
         "required": ["query"]
