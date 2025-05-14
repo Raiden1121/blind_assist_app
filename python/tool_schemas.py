@@ -4,7 +4,7 @@ from google.genai import types
 
 geocode_decl = types.FunctionDeclaration(
     name="geocode_place",
-    description="Convert a address or place name to lat,lng. unless it's a well-known place or explicit address, you should use search_places to get a list of possible matches first",
+    description="Convert a address or place name to lat,lng. if the function fail or query is not a well-known location or explicit address, you should use search_places to get a list of possible matches first",
     parameters={
         "type": "object",
         "properties": {

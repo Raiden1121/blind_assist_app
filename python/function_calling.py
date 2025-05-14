@@ -75,7 +75,7 @@ routes_tool = [types.Tool(function_declarations=[
     get_current_step_decl,     # Add this line
     get_current_location_decl  # Add this line
 ])]
-MODEL = "gemini-1.5-pro"
+MODEL = "gemini-2.0-flash"
 
 
 @dataclass
