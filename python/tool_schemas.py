@@ -39,7 +39,7 @@ reverse_geocode_decl = {
 
 route_decl = types.FunctionDeclaration(
     name="compute_route",
-    description="計算從起點到終點的路線步驟",
+    description="Compute a route between two locations with optional transportation mode",
     parameters={
         "type": "object",
         "properties": {
@@ -53,7 +53,7 @@ route_decl = types.FunctionDeclaration(
             },
             "mode": {
                 "type": "string",
-                "enum": ["WALK", "DRIVE", "TRANSIT"],
+                "enum": ["WALK", "DRIVE", "TRANSIT", "BICYCLE", "TWO_WHEELER"],
                 "description": "transportation mode"
             }
         },

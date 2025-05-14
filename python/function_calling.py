@@ -33,6 +33,7 @@ During navigation, you should:
 For non-navigation general questions, respond directly without using tool functions.
 
 Important: When users mention "my current location" or "I'm here", you should use geocode_place with the query parameter set to "CURRENT_LOCATION".
+When a task requires multiple steps or calling multiple functions that depend on each other, call only one function at a time. Wait for the result of that function before deciding the next step or function call.
 """
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
