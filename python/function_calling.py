@@ -64,13 +64,22 @@ Respond with text instructions only in final output and nothing else (in the lan
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
 
-routes_tool = [types.Tool(function_declarations=[
+idle_routes_tool = [types.Tool(function_declarations=[
     route_decl,
     geocode_decl,
     reverse_geocode_decl,
     search_places_decl,
     place_details_decl,
     start_navigation_decl,
+    get_current_step_decl,     # Add this line
+    get_current_location_decl  # Add this line
+])]
+navigating_routes_tool = [types.Tool(function_declarations=[
+    route_decl,
+    geocode_decl,
+    reverse_geocode_decl,
+    search_places_decl,
+    place_details_decl,
     end_navigation_decl,
     get_current_step_decl,     # Add this line
     get_current_location_decl  # Add this line
@@ -87,15 +96,14 @@ class NavigationState:
 
 
 class ChatManager:
-    def __init__(self, api_key, tools):
+    def __init__(self, api_key,):
         self.api_key = api_key
-        self.tools = tools
         self.idle_chat = None
         self.nav_chat = None
 
     def create_idle_chat(self):
         config = {
-            "tools": self.tools,
+            "tools": idle_routes_tool,
             "system_instruction": idle_instruction,
             "temperature": 0
         }
@@ -105,7 +113,7 @@ class ChatManager:
 
     def create_navigation_chat(self, route_info):
         config = {
-            "tools": self.tools,
+            "tools": navigating_routes_tool,
             "system_instruction": get_navigation_instruction(route_info),
             "temperature": 0
         }
@@ -114,7 +122,7 @@ class ChatManager:
         return self.nav_chat
 
 
-chat_manager = ChatManager(os.getenv("GEMINI_API_KEY"), routes_tool)
+chat_manager = ChatManager(os.getenv("GEMINI_API_KEY"))
 chat = chat_manager.create_idle_chat()  # Initialize with idle chat
 
 
@@ -361,12 +369,14 @@ async def place_details(place_id: str) -> dict:
 async def get_current_step() -> dict:
     return navigation_state.current_step
 
+mode_swicthed = False
+
 
 async def start_navigation() -> None:
     """
     Starts navigation with the current route
     """
-    global navigation_state
+    global navigation_state, mode_swicthed, chat
 
     if not navigation_state.current_route:
         raise ValueError("Cannot start navigation without route")
@@ -376,6 +386,9 @@ async def start_navigation() -> None:
         0].get("steps", [])[0]  # Get the first step
 
     print("Navigation started")  # debug
+    mode_swicthed = True
+    chat = chat_manager.create_navigation_chat(
+        navigation_state.current_route)
     return
 
 
@@ -383,7 +396,7 @@ async def end_navigation() -> None:
     """
     Ends navigation
     """
-    global navigation_state
+    global navigation_state, mode_swicthed, chat
 
     if navigation_state.status != "Navigating":
         raise ValueError("No active navigation session to end")
@@ -393,6 +406,8 @@ async def end_navigation() -> None:
     navigation_state.current_step = None
 
     print("Navigation ended")  # debug
+    mode_swicthed = True
+    chat = chat_manager.create_idle_chat()  # Reset to idle chat
     return
 
 
@@ -415,6 +430,12 @@ async def ask_llm(message, image=None, images=None):
             - First element: Route steps if navigation, else None
             - Second element: Text response from LLM
     """
+    global mode_swicthed
+
+    # Add check at the beginning of the function
+    if mode_swicthed:
+        mode_swicthed = False  # Reset the flag
+        return None, ""
 
     print(f"Sending to model: {type(message)}",
           message if isinstance(message, str) else "Function response")
@@ -586,7 +607,6 @@ async def ask_llm(message, image=None, images=None):
 
 async def chatbot_conversation(user_input: str):
     global chat, navigation_state
-    current_mode = navigation_state.status
     location = await get_current_location()
 
     if navigation_state.status == "Navigating":
@@ -595,16 +615,6 @@ async def chatbot_conversation(user_input: str):
             location[0], location[1], navigation_state.current_route, 20)
 
     response = await ask_llm(user_input)
-
-    # Check if mode changed during conversation
-    if current_mode != navigation_state.status:
-        if navigation_state.status == "Navigating":
-            # Switch to navigation chat if navigation started
-            chat = chat_manager.create_navigation_chat(
-                navigation_state.current_route)
-        else:
-            # Switch to idle chat if navigation ended
-            chat = chat_manager.create_idle_chat()
 
     # Print mode-specific status
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
