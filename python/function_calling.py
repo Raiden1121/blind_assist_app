@@ -21,6 +21,7 @@ You should use functions provided by navigation tools when the user asks about n
 
 Example for location-related requests:
 - First use search_places and geocode_place to find the destination location
+- Get the current location using get_current_location
 - Then use compute_route to calculate the route from current user location to the destination
 - Ask whether the user wants to use this route, providing the distance and estimated time
 - If the user agrees, call start_navigation to begin guided navigation
@@ -644,7 +645,7 @@ async def chatbot_conversation(user_input: str):
 
     if new_destination:
         # If a new destination is set, use it for geocoding
-        user_input = f"go to coordinat [{new_destination}]"
+        user_input = f"Take me to coordinate [{new_destination}]"
         new_destination = None
 
     response = await ask_llm(user_input)
