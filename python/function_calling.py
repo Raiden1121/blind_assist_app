@@ -659,14 +659,16 @@ async def chatbot_conversation(user_input: str):
 if __name__ == "__main__":
     print("視障者助手已啟動。輸入 'exit' 結束對話。")
     print("[Mode: Idle]")
-
+    response = None
+    user_input = ""
     while True:
-        user_input = input("您: ")
-        if user_input.lower() in ['exit', 'quit', '結束', '退出']:
-            if navigation_state.status == "Navigating":
-                asyncio.run(end_navigation())
-            print("助手: 再見！")
-            break
+        if (response and response != ""):
+            user_input = input("您: ")
+            if user_input.lower() in ['exit', 'quit', '結束', '退出']:
+                if navigation_state.status == "Navigating":
+                    asyncio.run(end_navigation())
+                print("助手: 再見！")
+                break
 
         response = asyncio.run(chatbot_conversation(user_input))
         print(f"助手: {response}")
