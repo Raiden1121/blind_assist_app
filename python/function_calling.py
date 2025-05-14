@@ -22,14 +22,15 @@ You should use navigation tools for the following types of requests:
 3. Questions about locations or routes: e.g., "where is XXX", "how to reach XXX"
 
 For location-related requests:
-- First use geocode_place to find the destination location
-- Then use compute_route to calculate the route
+- First use search_places and geocode_place to find the destination location
+- Then use compute_route to calculate the route from current user location to the destination
 - Ask whether the user wants to use this route, providing the distance and estimated time
 - If the user agrees, call start_navigation to begin guided navigation
 
 For non-navigation questions, respond directly without using tool functions.
 
-Important: Call only one function at a time and wait for its result before deciding the next step.
+Important: Call only one function at a time and wait for its result before deciding the next step. Afer calling start_navigation you should end current turn immediately and do nothing else.
+Respond with text instructions only in final output and nothing else (in the language of user input).
 """
 
 
@@ -37,7 +38,9 @@ def get_navigation_instruction(route_info):
     return f"""
 You are now in navigation mode, actively guiding a visually impaired user along their route.
 Current route information:
+```json
 {json.dumps(route_info, indent=2)}
+```
 
 Your responsibilities:
 1. Process user's current location and progress along the route
@@ -50,7 +53,8 @@ Your responsibilities:
    - Navigation needs to be cancelled
 
 Keep instructions brief and clear. Focus on immediate next steps and safety.
-Important: Call only one function at a time and wait for its result before deciding the next step.
+Important: Call only one function at a time and wait for its result before deciding the next step. Afer calling end_navigation you should end current turn immediately and do nothing else.
+Respond with text instructions only in final output and nothing else (in the language of user input).
 """
 
 
@@ -63,9 +67,11 @@ routes_tool = [types.Tool(function_declarations=[
     search_places_decl,
     place_details_decl,
     start_navigation_decl,
-    end_navigation_decl  # Add this line
+    end_navigation_decl,
+    get_current_step_decl,     # Add this line
+    get_current_location_decl  # Add this line
 ])]
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-1.5-pro"
 
 
 @dataclass
@@ -109,14 +115,14 @@ chat = chat_manager.create_idle_chat()  # Initialize with idle chat
 navigation_state = NavigationState()
 
 
-async def get_current_location() -> tuple[float, float]:
+async def get_current_location() -> dict:
     """
     優先用 ipapi ≈ 300 毫秒；失敗再後備 geocoder.ip('me')
     回傳 (lat, lng)
     """
-    current_loc = [24.970632523750954, 121.1955897039094]  # 中壢火車站
+    current_loc = {"lat": 24.970632523750954, "lng": 121.1955897039094}
     print("Getting current location: ", current_loc)  # debug
-    return current_loc
+    return [current_loc["lat"], current_loc["lng"]]
     # try:
     #     async with httpx.AsyncClient(timeout=2) as c:
     #         r = await c.get("https://ipapi.co/json/")
@@ -154,7 +160,7 @@ async def geocode_place(query: str) -> dict:
     loc = r.json()["results"][0]["geometry"]["location"]
     if not loc:
         raise RuntimeError("No location found")
-
+    print("Geocoded location:", loc)  # debug
     return {"lat": loc["lat"], "lng": loc["lng"]}
 
 # Add this after the existing geocode_place function
@@ -346,11 +352,15 @@ async def place_details(place_id: str) -> dict:
     return result
 
 
+async def get_current_step() -> dict:
+    return navigation_state.current_step
+
+
 async def start_navigation() -> None:
     """
-    Starts navigation with the current route and creates a new navigation-focused chat
+    Starts navigation with the current route
     """
-    global navigation_state, chat
+    global navigation_state
 
     if not navigation_state.current_route:
         raise ValueError("Cannot start navigation without route")
@@ -359,17 +369,15 @@ async def start_navigation() -> None:
     navigation_state.current_step = navigation_state.current_route.get("legs", [{}])[
         0].get("steps", [])[0]  # Get the first step
 
-    # Create new chat with navigation context
-    chat = chat_manager.create_navigation_chat(navigation_state.current_route)
     print("Navigation started")  # debug
     return
 
 
 async def end_navigation() -> None:
     """
-    Ends navigation and returns to idle chat mode
+    Ends navigation
     """
-    global navigation_state, chat
+    global navigation_state
 
     if navigation_state.status != "Navigating":
         raise ValueError("No active navigation session to end")
@@ -378,10 +386,9 @@ async def end_navigation() -> None:
     navigation_state.current_route = None
     navigation_state.current_step = None
 
-    # Return to idle chat
-    chat = chat_manager.create_idle_chat()
     print("Navigation ended")  # debug
     return
+
 
 # ───────── Recursive tool orchestration ─────────
 
@@ -530,6 +537,22 @@ async def ask_llm(message, image=None, images=None):
                     except Exception as e:
                         print(f"Error ending navigation: {e}")
                         return None, f"Error ending navigation: {str(e)}"
+                # Add in the function handling section of ask_llm:
+                elif fn.name == "get_current_step":
+                    step = await get_current_step()
+                    fn_resp = types.FunctionResponse(
+                        name="get_current_step",
+                        response=step
+                    )
+                    return await ask_llm(fn_resp)
+
+                elif fn.name == "get_current_location":
+                    location = await get_current_location()
+                    fn_resp = types.FunctionResponse(
+                        name="get_current_location",
+                        response={"lat": location[0], "lng": location[1]}
+                    )
+                    return await ask_llm(fn_resp)
             except Exception as e:
                 print(f"Error in {fn.name}: {e}")
                 return None, f"Error executing {fn.name}: {str(e)}"
@@ -557,16 +580,25 @@ async def ask_llm(message, image=None, images=None):
 
 async def chatbot_conversation(user_input: str):
     global chat, navigation_state
+    current_mode = navigation_state.status
     location = await get_current_location()
 
-    info = "Current User Location: " + str(location) + "\n"
     if navigation_state.status == "Navigating":
         # If in navigation mode, use the current step for context
         navigation_state.current_step = deviation.get_current_step(
             location[0], location[1], navigation_state.current_route, 20)
-        info += "\n"+"Current Step: "+str(navigation_state.current_step)+"\n"
 
-    response = await ask_llm(info+user_input)
+    response = await ask_llm(user_input)
+
+    # Check if mode changed during conversation
+    if current_mode != navigation_state.status:
+        if navigation_state.status == "Navigating":
+            # Switch to navigation chat if navigation started
+            chat = chat_manager.create_navigation_chat(
+                navigation_state.current_route)
+        else:
+            # Switch to idle chat if navigation ended
+            chat = chat_manager.create_idle_chat()
 
     # Print mode-specific status
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
