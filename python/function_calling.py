@@ -29,9 +29,7 @@ For location-related requests:
 
 For non-navigation questions, respond directly without using tool functions.
 
-Important: Use geocode_place with query="CURRENT_LOCATION" to get current user location if needed.
-Call only one function at a time and wait for its result before deciding the next step.
-Respond in plain text format for user to hear.
+Important: Call only one function at a time and wait for its result before deciding the next step.
 """
 
 
@@ -52,8 +50,7 @@ Your responsibilities:
    - Navigation needs to be cancelled
 
 Keep instructions brief and clear. Focus on immediate next steps and safety.
-Call only one function at a time and wait for its result.
-Respond in plain text format for user to hear.
+Important: Call only one function at a time and wait for its result before deciding the next step.
 """
 
 
@@ -68,6 +65,7 @@ routes_tool = [types.Tool(function_declarations=[
     start_navigation_decl,
     end_navigation_decl  # Add this line
 ])]
+MODEL = "gemini-2.0-flash"
 
 
 @dataclass
@@ -91,7 +89,7 @@ class ChatManager:
             "system_instruction": idle_instruction
         }
         self.idle_chat = client.chats.create(
-            model="gemini-1.5-pro", config=config)
+            model=MODEL, config=config)
         return self.idle_chat
 
     def create_navigation_chat(self, route_info):
@@ -100,7 +98,7 @@ class ChatManager:
             "system_instruction": get_navigation_instruction(route_info)
         }
         self.nav_chat = client.chats.create(
-            model="gemini-1.5-pro", config=config)
+            model=MODEL, config=config)
         return self.nav_chat
 
 
