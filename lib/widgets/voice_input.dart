@@ -1,120 +1,181 @@
+// =======================================================
+// voice_input.dart
+// ✅ 功能說明：
+//   1️⃣ 長按錄音，松手結束
+//   2️⃣ 即時收集 PCM raw audio chunk
+//   3️⃣ 結束後將 buffer 中音訊轉成 Uint8List
+//   4️⃣ 透過 gRPC ChatStream 串流送到後端
+// =======================================================
+
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart'; // 錄音工具
 import 'package:permission_handler/permission_handler.dart'; // 權限處理
-import 'package:http/http.dart' as http; // 傳送 HTTP 請求
-import 'package:http_parser/http_parser.dart'; // 指定 Content-Type
-import 'dart:typed_data'; // 用於記憶體資料 Uint8List
-import 'dart:async'; // 用於 StreamController 與 Subscription
+import 'package:grpc/grpc.dart' as grpc;
+
+// gRPC Stub（protoc 生成）
+import '../generated/blind_assist.pbgrpc.dart';
 
 class VoiceInput extends StatefulWidget {
-  const VoiceInput({super.key});
+  const VoiceInput({Key? key}) : super(key: key);
 
   @override
   State<VoiceInput> createState() => _VoiceInputState();
 }
 
 class _VoiceInputState extends State<VoiceInput> {
-  final FlutterSoundRecorder _recorder = FlutterSoundRecorder(); // 錄音器實例
-  bool _isRecording = false; // 是否正在錄音
-  final List<int> _rawDataBuffer = []; // 用來存放錄下來的 PCM 原始資料（記憶體）
+  // === 錄音相關 ===
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  bool _isRecording = false; // 標記目前是否在錄音
+  final List<int> _rawDataBuffer = []; // PCM buffer（如果還要保留）
 
-  StreamController<Uint8List>? _audioStreamController; // 音訊資料的 StreamController
-  StreamSubscription<Uint8List>? _recorderSubscription; // 音訊資料的訂閱者
+  StreamController<Uint8List>? _audioStreamController;
+  StreamSubscription<Uint8List>? _recorderSubscription;
+
+  // === gRPC 相關 ===
+  late final grpc.ClientChannel _channel;
+  late final GeminiLiveClient _grpcClient;
+  late final StreamController<ClientRequest> _reqController;
 
   @override
   void initState() {
     super.initState();
-    _initRecorder(); // 初始化錄音器與權限
-  }
-
-  /// 初始化錄音器與麥克風權限
-  Future<void> _initRecorder() async {
-    final status = await Permission.microphone.request(); // 請求麥克風權限
-    if (status.isGranted) {
-      await _recorder.openRecorder(); // 啟動錄音器
-    } else {
-      // 權限被拒，提示用戶
-      print('❗麥克風權限被拒絕');
-    }
-  }
-
-  /// 開始錄音，使用 Codec.pcm16（16-bit RAW PCM）
-  Future<void> _startRecording() async {
-    _rawDataBuffer.clear(); // 清空舊的資料
-
-    // 建立 StreamController 以接收錄音資料
-    _audioStreamController = StreamController<Uint8List>();
-
-    // 監聽音訊串流資料，每當收到一段 PCM 音訊就加入 buffer
-    _recorderSubscription = _audioStreamController!.stream.listen((chunk) {
-      _rawDataBuffer.addAll(chunk); // 將 Uint8List 資料加到原始緩衝區
-    });
-
-    // 啟動錄音，將資料傳入 StreamSink
-    await _recorder.startRecorder(
-      codec: Codec.pcm16, // RAW PCM（16-bit, little-endian）
-      sampleRate: 16000, // 錄音取樣率
-      numChannels: 1, // 單聲道
-      toStream: _audioStreamController!.sink, // ✅ 正確提供 StreamSink
-    );
-
-    setState(() => _isRecording = true); // 更新 UI 狀態
-  }
-
-  /// 停止錄音並上傳記憶體中的資料
-  Future<void> _stopRecording() async {
-    await _recorder.stopRecorder(); // 停止錄音
-    await _recorderSubscription?.cancel(); // 停止接收資料
-    _recorderSubscription = null;
-    await _audioStreamController?.close(); // 關閉 Stream
-    _audioStreamController = null;
-
-    setState(() => _isRecording = false); // 更新 UI 狀態
-
-    // 將 List<int> 轉成 Uint8List（可傳輸）
-    Uint8List rawBytes = Uint8List.fromList(_rawDataBuffer);
-
-    // 上傳音訊資料至後端
-    await uploadRawPcmAudio(rawBytes);
-  }
-
-  /// 將錄音資料（記憶體中的 raw PCM）上傳至後端 API
-  Future<void> uploadRawPcmAudio(Uint8List audioBytes) async {
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://your-api.com/upload'), // ← 改成你的 API URL
-    );
-
-    request.files.add(http.MultipartFile.fromBytes(
-      'file', // 對應後端的欄位名稱
-      audioBytes,
-      filename: 'recording.pcm', // 任意檔名
-      contentType: MediaType('audio', 'L16'), // RAW PCM 格式的 Content-Type
-    ));
-
-    final response = await request.send();
-    print(response.statusCode == 200 ? '✅ 上傳成功' : '❌ 上傳失敗');
+    _initGrpc(); // 初始化 gRPC channel & client & 串流
+    _initRecorder(); // 初始化錄音器並請求權限
   }
 
   @override
-  void dispose() {
-    _recorder.closeRecorder(); // 關閉錄音器資源
+  void dispose() async {
+    await _recorderSubscription?.cancel();
+    await _recorder.closeRecorder();
+    await _reqController.close();
+    await _channel.shutdown(); // <- await
     super.dispose();
   }
 
-  /// 錄音按鈕（長按錄音）
+  /// 初始化 gRPC Channel、Client，並啟動 ChatStream 雙向串流
+  void _initGrpc() {
+    _channel = grpc.ClientChannel(
+      'blind-grpc-server-617941879669.asia-east1.run.app',
+      port: 443,
+      options: grpc.ChannelOptions(
+        credentials: grpc.ChannelCredentials.secure(), // 放在 options 裡面
+        idleTimeout: const Duration(seconds: 60), // 避免太久沒有活動就被 server 關線
+        codecRegistry: grpc.CodecRegistry(codecs: const [
+          grpc.GzipCodec(), // 可選：gzip 壓縮
+          grpc.IdentityCodec(),
+        ]),
+      ),
+    );
+
+    _grpcClient = GeminiLiveClient(_channel);
+    _reqController = StreamController<ClientRequest>();
+
+    // 1️⃣ 先送 InitialConfigRequest
+    _reqController.sink.add(ClientRequest(
+      initialConfig: InitialConfigRequest(
+        modelName: 'gemini-1', // ← 可改
+        responseModalities: ['TEXT', 'AUDIO'],
+      ),
+    ));
+
+    // 2️⃣ 啟動雙向串流，並監聽伺服器回應
+    _grpcClient.chatStream(_reqController.stream).listen(
+          _onServerResponse,
+          onError: (e) => debugPrint('❌ gRPC 錯誤：$e'),
+        );
+  }
+
+  /// 初始化錄音器：請求麥克風權限後開啟錄音器
+  Future<void> _initRecorder() async {
+    final status = await Permission.microphone.request();
+    if (status.isGranted) {
+      await _recorder.openRecorder();
+      // 設定錄音訂閱頻率（影響 chunk 大小）
+      await _recorder
+          .setSubscriptionDuration(const Duration(milliseconds: 100));
+    } else {
+      debugPrint('❗ 麥克風權限被拒絕，無法錄音');
+    }
+  }
+
+  /// 開始錄音：
+  /// - 清空 buffer（如要保留）
+  /// - 建立 PCM chunk StreamController
+  /// - startRecorder 並把 sink 接到 controller
+  Future<void> _startRecording() async {
+    _rawDataBuffer.clear();
+    _audioStreamController = StreamController<Uint8List>();
+    _recorderSubscription = _audioStreamController!.stream.listen((chunk) {
+      // 1️⃣ 保留在本地 buffer（可選）
+      _rawDataBuffer.addAll(chunk);
+      // 2️⃣ 透過 gRPC 打包成 AudioPart 串流送出
+      _reqController.sink.add(ClientRequest(
+        clientAudioPart: AudioPart(
+          audioData: chunk,
+          mimeType: 'audio/pcm',
+          sampleRate: 16000,
+        ),
+      ));
+    });
+
+    await _recorder.startRecorder(
+      toStream: _audioStreamController!.sink,
+      codec: Codec.pcm16, // PCM 16-bit raw
+      sampleRate: 16000, // 每秒 16000 samples
+      numChannels: 1, // 單聲道
+    );
+
+    setState(() => _isRecording = true);
+  }
+
+  /// 停止錄音：
+  /// - stopRecorder
+  /// - 取消訂閱 & 關閉 controller
+  /// - 送 end_of_turn=true 給伺服器
+  Future<void> _stopRecording() async {
+    await _recorder.stopRecorder();
+    await _recorderSubscription?.cancel();
+    await _audioStreamController?.close();
+    setState(() => _isRecording = false);
+
+    // 通知伺服器這一輪語音已經結束
+    _reqController.sink.add(ClientRequest(endOfTurn: true));
+  }
+
+  /// 處理伺服器回應
+  void _onServerResponse(ServerResponse resp) {
+    if (resp.hasTextPart()) {
+      final text = resp.textPart.text;
+      debugPrint('💬 回傳文字：$text');
+      // TODO: 顯示到畫面上
+    }
+    if (resp.hasGeminiAudioPart()) {
+      final audio = resp.geminiAudioPart.audioData;
+      debugPrint('🔈 收到語音回覆，共 ${audio.length} bytes');
+      // TODO: 播放或存檔
+    }
+    if (resp.hasErrorPart()) {
+      debugPrint('⚠️ 錯誤 ${resp.errorPart.code}: ${resp.errorPart.message}');
+    }
+    if (resp.turnComplete) {
+      debugPrint('🔔 Gemini 回合結束');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: (_) => _startRecording(), // 手指按下 → 開始錄音
-      onPointerUp: (_) => _stopRecording(), // 放開手指 → 停止錄音
+      onPointerDown: (_) => _startRecording(), // 長按開始
+      onPointerUp: (_) => _stopRecording(), // 放開停止
       child: FloatingActionButton(
         backgroundColor: _isRecording
-            ? const Color.fromARGB(255, 219, 54, 54) // 錄音中：紅色
-            : const Color.fromARGB(255, 113, 52, 52), // 待命：深紅
-        onPressed: () {}, // 不使用 onPressed，改用 Listener 控制
+            ? const Color.fromARGB(255, 219, 54, 54) // 錄音中紅色
+            : const Color.fromARGB(255, 113, 52, 52), // 待命
+        onPressed: () {}, // 使用 Listener 而非 onPressed
         child: Icon(
-          _isRecording ? Icons.mic : Icons.mic_none, // 顯示不同圖示
+          _isRecording ? Icons.mic : Icons.mic_none,
           size: 60,
         ),
       ),

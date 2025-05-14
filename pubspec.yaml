@@ -25,7 +25,7 @@ dependencies:
   permission_handler: ^11.0.1  # 麥克風權限請求
   http_parser: ^4.0.2          # 設定上傳的 Content-Type
   audioplayers: ^5.2.1
-  
+  image: ^4.5.4
   geolocator: ^11.0.0
 
 

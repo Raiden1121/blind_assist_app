@@ -9,7 +9,7 @@ import httpx
 GMAPS_KEY = "YOUR_GOOGLE_MAPS_KEY"
 GEMINI_KEY = "YOUR_GEMINI_API_KEY"
 
-class NavServiceServicer(nav_service_pb2_grpc.NavServiceServicer):
+class NavServiceServicer(blind_assist_pb2_grpc.NavServiceServicer):
   def __init__(self):
     self.gmaps = GMaps.client(key=GMAPS_KEY)
     # 建立 Gemini client    
@@ -25,10 +25,10 @@ class NavServiceServicer(nav_service_pb2_grpc.NavServiceServicer):
 
   def GetDestLocation(self, req, ctx):
     if req.query == "CURRENT_LOCATION":
-      return nav_service_pb2.LocationResponse(lat=req.current_lat, lng=req.current_lng)
+      return blind_assist_pb2.LocationResponse(lat=req.current_lat, lng=req.current_lng)
     geo = self.gmaps.geocode(req.query)
     loc = geo[0]["geometry"]["location"]
-    return nav_service_pb2.LocationResponse(lat=loc["lat"], lng=loc["lng"])
+    return blind_assist_pb2.LocationResponse(lat=loc["lat"], lng=loc["lng"])
 
   async def GetRoutes(self, req, ctx):
     directions = self.gmaps.directions(
@@ -74,8 +74,8 @@ class NavServiceServicer(nav_service_pb2_grpc.NavServiceServicer):
     for s in steps:
       instr = s["navigationInstruction"]
       dist  = s["distanceMeters"]
-      resp.append(nav_service_pb2.RouteStep(instruction=instr, distance=dist))
-    return nav_service_pb2.RouteResponse(steps=resp)
+      resp.append(blind_assist_pb2.RouteStep(instruction=instr, distance=dist))
+    return blind_assist_pb2.RouteResponse(steps=resp)
 
   def AskLLM(self, req, ctx):
     chat = self.llm.start_chat()
@@ -84,17 +84,17 @@ class NavServiceServicer(nav_service_pb2_grpc.NavServiceServicer):
     # 最後回傳 steps 與 reply_text
     steps, reply = ... 
     # 把 Python dict 轉成 RouteStep list
-    rr = [nav_service_pb2.RouteStep(instruction=s["text"], distance=0) for s in steps]
-    return nav_service_pb2.LLMResponse(steps=rr, reply_text=reply)
+    rr = [blind_assist_pb2.RouteStep(instruction=s["text"], distance=0) for s in steps]
+    return blind_assist_pb2.LLMResponse(steps=rr, reply_text=reply)
 
   def GetNavigateMessage(self, req, ctx):
     # 你可以本地化創建提示文字
     msg = f"請朝 {req.step.instruction} 前進，大約 {req.step.distance} 公尺。"
-    return nav_service_pb2.NavigateResponse(message=msg)
+    return blind_assist_pb2.NavigateResponse(message=msg)
 
 def serve():
   server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
-  nav_service_pb2_grpc.add_NavServiceServicer_to_server(NavServiceServicer(), server)
+  blind_assist_pb2_grpc.add_NavServiceServicer_to_server(NavServiceServicer(), server)
   server.add_insecure_port('[::]:50051')
   server.start()
   server.wait_for_termination()

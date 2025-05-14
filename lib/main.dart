@@ -118,6 +118,7 @@ class _AssistHomePageState extends State<AssistHomePage> {
           const CameraView(), // 相機畫面
           Align(
             alignment: Alignment.bottomCenter,
+            child: const VoiceInput(),
           ),
         ],
       ),

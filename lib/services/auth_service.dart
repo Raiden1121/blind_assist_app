@@ -4,12 +4,12 @@
 // 1️⃣ 提供 Firebase Authentication 的帳號操作封裝
 // 2️⃣ ✅ Email/密碼 註冊 & 登入
 // 3️⃣ ✅ 登出功能
-// 4️⃣ ❌ Google / Apple 登入 → 已註解（暫不啟用）
+// 4️⃣ Google 登入
 // =======================================================
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // ✅ 註解掉 Google Sign-in
-// import 'package:sign_in_with_apple/sign_in_with_apple.dart'; // ✅ 註解掉 Apple Sign-in
+import 'package:google_sign_in/google_sign_in.dart';
+// import 'package:sign_in_with_apple/sign_in_with_apple.dart'; //  註解掉 Apple Sign-in
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance; // Firebase Auth 實例
