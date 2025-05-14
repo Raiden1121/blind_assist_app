@@ -103,3 +103,23 @@ place_details_decl = types.FunctionDeclaration(
         "required": ["place_id"]
     }
 )
+
+start_navigation_decl = types.FunctionDeclaration(
+    name="start_navigation",
+    description="Start navigation with the currently computed route",
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+)
+
+end_navigation_decl = types.FunctionDeclaration(
+    name="end_navigation",
+    description="End the current navigation session and reset navigation state",
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+)

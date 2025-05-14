@@ -6,18 +6,13 @@ import dotenv
 import math
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
-from tool_schemas import (
-    geocode_decl,
-    route_decl,
-    reverse_geocode_decl,
-    search_places_decl,
-    place_details_decl  # Add this
-)
-
+from tool_schemas import *
+from dataclasses import dataclass
+from typing import Optional, List
 dotenv.load_dotenv()
 MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
-
-system_instruction = """
+# Replace existing system_instruction with:
+idle_instruction = """
 You are a digital assistant specifically designed for visually impaired users, equipped with powerful navigation capabilities.
 
 You should use navigation tools for the following types of requests:
@@ -25,16 +20,39 @@ You should use navigation tools for the following types of requests:
 2. Phrases containing directional words: e.g., "walk to", "go over to", "get to"
 3. Questions about locations or routes: e.g., "where is XXX", "how to reach XXX"
 
-During navigation, you should:
+For location-related requests:
 - First use geocode_place to find the destination location
 - Then use compute_route to calculate the route
-- Finally, convert route instructions into visually impaired-friendly descriptions
+- Ask whether the user wants to use this route, providing the distance and estimated time
+- If the user agrees, call start_navigation to begin guided navigation
 
-For non-navigation general questions, respond directly without using tool functions.
+For non-navigation questions, respond directly without using tool functions.
 
-Important: When users mention "my current location" or "I'm here", you should use geocode_place with the query parameter set to "CURRENT_LOCATION".
-When a task requires multiple steps or calling multiple functions that depend on each other, call only one function at a time. Wait for the result of that function before deciding the next step or function call.
+Important: When users mention "my current location" or "I'm here", use geocode_place with query="CURRENT_LOCATION".
+Call only one function at a time and wait for its result before deciding the next step.
 """
+
+
+def get_navigation_instruction(route_info):
+    return f"""
+You are now in navigation mode, actively guiding a visually impaired user along their route.
+Current route information:
+{json.dumps(route_info, indent=2)}
+
+Your responsibilities:
+1. Process user's current location and progress along the route
+2. Provide clear, concise directions for the next step
+3. Alert about any obstacles or hazards detected in camera images
+4. Monitor arrival at waypoints or destination
+5. Call end_navigation when:
+   - User requests to stop navigation
+   - User has arrived at destination
+   - Navigation needs to be cancelled
+
+Keep instructions brief and clear. Focus on immediate next steps and safety.
+Call only one function at a time and wait for its result.
+"""
+
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
 
@@ -43,23 +61,51 @@ routes_tool = [types.Tool(function_declarations=[
     geocode_decl,
     reverse_geocode_decl,
     search_places_decl,
-    place_details_decl  # Add this
+    place_details_decl,
+    start_navigation_decl,
+    end_navigation_decl  # Add this line
 ])]
 
-config = {
-    "tools": routes_tool,  # FunctionCall schema
-    "automatic_function_calling": {
-        "disable": True
-    },
-    # "tool_config": {
-    #     "function_calling_config": {
-    #         "mode": "any"
-    #     }
-    # },
-    "system_instruction": system_instruction
-}
 
-chat = client.chats.create(model="gemini-1.5-pro", config=config)
+@dataclass
+class NavigationState:
+    status: str = "Idle"
+    current_route = None
+    current_step = None
+    chat = None  # Add this field
+
+
+class ChatManager:
+    def __init__(self, api_key, tools):
+        self.api_key = api_key
+        self.tools = tools
+        self.idle_chat = None
+        self.nav_chat = None
+
+    def create_idle_chat(self):
+        config = {
+            "tools": self.tools,
+            "system_instruction": idle_instruction
+        }
+        self.idle_chat = client.chats.create(
+            model="gemini-1.5-pro", config=config)
+        return self.idle_chat
+
+    def create_navigation_chat(self, route_info):
+        config = {
+            "tools": self.tools,
+            "system_instruction": get_navigation_instruction(route_info)
+        }
+        self.nav_chat = client.chats.create(
+            model="gemini-1.5-pro", config=config)
+        return self.nav_chat
+
+
+chat_manager = ChatManager(os.getenv("GEMINI_API_KEY"), routes_tool)
+chat = chat_manager.create_idle_chat()  # Initialize with idle chat
+
+
+navigation_state = NavigationState()
 
 
 async def get_current_location() -> tuple[float, float]:
@@ -195,7 +241,8 @@ async def compute_route(origin: str,
 
     if not data.get("routes"):
         raise RuntimeError("No route found")
-    return data["routes"][0]["legs"][0]["steps"]
+    navigation_state.current_route = data["routes"][0]
+    return data["routes"][0]
 
 
 async def search_places(query: str,
@@ -297,6 +344,44 @@ async def place_details(place_id: str) -> dict:
 
     return result
 
+
+async def start_navigation() -> None:
+    """
+    Starts navigation with the current route and creates a new navigation-focused chat
+    """
+    global navigation_state, chat
+
+    if not navigation_state.current_route:
+        raise ValueError("Cannot start navigation without route")
+
+    navigation_state.status = "Navigating"
+    navigation_state.current_step = navigation_state.current_route.get("legs", [{}])[
+        0].get("steps", [])
+
+    # Create new chat with navigation context
+    chat = chat_manager.create_navigation_chat(navigation_state.current_route)
+    print("Navigation started")  # debug
+    return
+
+
+async def end_navigation() -> None:
+    """
+    Ends navigation and returns to idle chat mode
+    """
+    global navigation_state, chat
+
+    if navigation_state.status != "Navigating":
+        raise ValueError("No active navigation session to end")
+
+    navigation_state.status = "Idle"
+    navigation_state.current_route = None
+    navigation_state.current_step = None
+
+    # Return to idle chat
+    chat = chat_manager.create_idle_chat()
+    print("Navigation ended")  # debug
+    return
+
 # ───────── Recursive tool orchestration ─────────
 
 
@@ -383,7 +468,6 @@ async def ask_llm(message):
                 )
                 return await ask_llm(fn_resp)
 
-            # Add in the function handling section of ask_llm
             elif fn.name == "place_details":
                 try:
                     details = await place_details(**fn.args)
@@ -395,6 +479,30 @@ async def ask_llm(message):
                 except Exception as e:
                     print(f"Error getting place details: {e}")
                     return None, f"Error getting place details: {str(e)}"
+
+            elif fn.name == "start_navigation":
+                try:
+                    result = await start_navigation(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="start_navigation",
+                        response=result
+                    )
+                    return await ask_llm(fn_resp)
+                except Exception as e:
+                    print(f"Error starting navigation: {e}")
+                    return None, f"Error starting navigation: {str(e)}"
+
+            elif fn.name == "end_navigation":
+                try:
+                    result = await end_navigation(**fn.args)
+                    fn_resp = types.FunctionResponse(
+                        name="end_navigation",
+                        response=result
+                    )
+                    return await ask_llm(fn_resp)
+                except Exception as e:
+                    print(f"Error ending navigation: {e}")
+                    return None, f"Error ending navigation: {str(e)}"
         except Exception as e:
             print(f"Error in {fn.name}: {e}")
             return None, f"Error executing {fn.name}: {str(e)}"
@@ -422,15 +530,26 @@ async def chatbot_conversation(user_input: str):
     return response
 
 
-# ───────── quick test ─────────
+async def chatbot_conversation(user_input: str):
+    global chat, navigation_state
+
+    steps, response = await ask_llm(user_input)
+
+    # Print mode-specific status
+    mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
+    print(f"[Mode: {mode}]")  # debug
+
+    return response
+
 if __name__ == "__main__":
-    # steps, first = asyncio.run(ask_llm("請帶我走路去中壢車站"))
-    # steps, first = asyncio.run(ask_llm("幫我寫merge_sort"))
     print("視障者助手已啟動。輸入 'exit' 結束對話。")
+    print("[Mode: Idle]")
 
     while True:
         user_input = input("您: ")
         if user_input.lower() in ['exit', 'quit', '結束', '退出']:
+            if navigation_state.status == "Navigating":
+                asyncio.run(end_navigation())
             print("助手: 再見！")
             break
 
