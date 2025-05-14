@@ -26,3 +26,5 @@ pubspec.lock
 *.DS_Store
 *.swp
 *.pyc
+*.cc
+*.cmake
