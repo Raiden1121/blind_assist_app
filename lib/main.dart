@@ -14,7 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart'; // ← flutterfire configure 產生的檔案，用於初始化 Firebase
 import 'package:blind_assist_app/widgets/camera_view.dart'; // 相機畫面
-// 語音輸入按鈕
+import 'package:blind_assist_app/widgets/voice_input.dart'; // 語音輸入工具
 import 'package:blind_assist_app/widgets/speech_player.dart'; // 語音播放工具
 // MCP 後端 API 呼叫
 import 'package:blind_assist_app/widgets/login_page.dart'; // 登入／註冊畫面

@@ -1,6 +1,6 @@
 from concurrent import futures
 import grpc, json
-import nav_service_pb2, nav_service_pb2_grpc
+import blind_assist_pb2, blind_assist_pb2_grpc
 from googlemaps import Client as GMaps
 from google_generative_ai import GenerativeModel, FunctionDeclaration, Schema, Tool, ToolConfig, FunctionCallingConfig
 from tool_schemas import geocodeDecl, routeDecl

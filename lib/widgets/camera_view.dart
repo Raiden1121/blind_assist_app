@@ -92,7 +92,7 @@ class _CameraViewState extends State<CameraView> {
             });
 
             // ✅ 播放警告音效
-            await _audioPlayer.play(AssetSource('assets/sounds/alarm.mp3'));
+            await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
             // ✅ 播放語音提示
             await _speechPlayer.speak("There is an obstacle ahead.");
 

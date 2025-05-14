@@ -8,8 +8,8 @@
 // =======================================================
 
 import 'package:flutter/material.dart';
-import 'package:blind_assist_app/services/auth_service.dart'; // 認證服務（自定義 AuthService）
-import 'package:firebase_auth/firebase_auth.dart'; // 引入 FirebaseAuthException
+import 'package:blind_assist_app/services/auth_service.dart'; // 自定義 AuthService
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuthException
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -19,77 +19,81 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailCtrl = TextEditingController(); // Email 輸入控制器
-  final _pwdCtrl = TextEditingController(); // 密碼輸入控制器
-  bool _loading = false; // 是否正在處理（登入／註冊中）
-  String? _error; // 儲存錯誤訊息
+  final TextEditingController _emailCtrl = TextEditingController(); // Email 輸入
+  final TextEditingController _pwdCtrl = TextEditingController(); // 密碼輸入
+  bool _loading = false; // 是否在處理中
+  String? _error; // 錯誤訊息
 
-  /// 格式化 Firebase 錯誤訊息
-  String _formatAuthError(Object e) {
-    if (e is FirebaseAuthException) {
-      return e.message ??
-          'Unknown error encountered.'; // 如果 message 是 null，給一個通用錯誤
-    }
-    // 對於其他類型的錯誤，嘗試移除常見的前綴
-    String errorMessage = e.toString();
-    if (errorMessage.startsWith("Exception: ")) {
-      errorMessage = errorMessage.substring("Exception: ".length);
-    }
-    // 你也可以用正則表達式移除 [firebase_auth/...] 這類標籤
-    // errorMessage = errorMessage.replaceAll(RegExp(r'^\[.*\]\s*'), '');
-    return errorMessage;
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _pwdCtrl.dispose();
+    super.dispose();
   }
 
-  /// 提交表單
-  /// [signUp]：若為 true 則執行註冊，否則執行登入
+  /// 格式化錯誤訊息
+  String _formatAuthError(Object e) {
+    if (e is FirebaseAuthException) {
+      return e.message ?? 'Unknown error encountered.';
+    }
+    var msg = e.toString();
+    if (msg.startsWith('Exception: ')) {
+      msg = msg.substring('Exception: '.length);
+    }
+    // 如需可再加入更多處理（如正則移除 [firebase_auth/...] 標籤）
+    return msg;
+  }
+
+  /// submit 表單：signUp=true => 註冊，否則登入
   Future<void> _submit({required bool signUp}) async {
     setState(() {
-      _loading = true; // 顯示 loading spinner
-      _error = null; // 清空之前的錯誤
+      _loading = true;
+      _error = null;
     });
+
     try {
       if (signUp) {
-        // ✅ 註冊帳號
         await AuthService.signUp(
           email: _emailCtrl.text.trim(),
           password: _pwdCtrl.text.trim(),
         );
       } else {
-        // ✅ 登入帳號
         await AuthService.signIn(
           email: _emailCtrl.text.trim(),
           password: _pwdCtrl.text.trim(),
         );
       }
     } catch (e) {
-      // 捕捉錯誤 → 顯示錯誤訊息
-      setState(() => _error = e.toString());
+      setState(() {
+        _error = _formatAuthError(e);
+      });
     } finally {
-      setState(() => _loading = false); // 處理完畢
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black87, // ✅ 整體背景：深色
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-      ),
+      backgroundColor: Colors.black87,
+      appBar: AppBar(backgroundColor: Colors.black),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // 頭像圖示
+                // Logo
                 Image.asset(
                   'assets/image/GeminEye_Logo.png',
                   width: 180,
                   height: 180,
                 ),
                 const SizedBox(height: 20),
-                // Email 輸入框
+
+                // Email
                 TextField(
                   controller: _emailCtrl,
                   style: const TextStyle(color: Colors.white),
@@ -105,25 +109,27 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // 密碼輸入框
+
+                // Password
                 TextField(
                   controller: _pwdCtrl,
-                  obscureText: true, // 密碼隱藏
+                  obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white10,
                     prefixIcon: const Icon(Icons.lock, color: Colors.white70),
-                    labelText: 'password',
+                    labelText: 'Password',
                     labelStyle: const TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
+
+                // 錯誤訊息
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  // 錯誤訊息
                   Text(
                     _error!,
                     style:
@@ -131,11 +137,13 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
                 const SizedBox(height: 30),
-                // 若正在處理 → 顯示 loading spinner
+
+                // Loading or Buttons
                 _loading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Column(
                         children: [
+                          // Email Login
                           ElevatedButton.icon(
                             onPressed: () => _submit(signUp: false),
                             icon: const Icon(Icons.login, color: Colors.white),
@@ -150,6 +158,8 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
+
+                          // Create Account
                           OutlinedButton.icon(
                             onPressed: () => _submit(signUp: true),
                             icon: const Icon(Icons.person_add,
@@ -164,17 +174,22 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16), // ← 新增分隔
+                          const SizedBox(height: 16),
+
+                          // Google Sign-In
                           OutlinedButton.icon(
                             onPressed: () async {
+                              setState(() => _error = null);
                               try {
                                 await AuthService.signInWithGoogle();
                               } catch (e) {
-                                setState(() => _error = e.toString());
+                                setState(() {
+                                  _error = _formatAuthError(e);
+                                });
                               }
                             },
                             icon: Image.asset(
-                              'assets/image/google_logo.png', // 這裡放 Google logo 圖檔路徑
+                              'assets/image/google_logo.png',
                               height: 24,
                               width: 24,
                             ),
@@ -184,9 +199,8 @@ class _LoginPageState extends State<LoginPage> {
                                   color: Colors.black87, fontSize: 16),
                             ),
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white, // 白底
-                              side:
-                                  const BorderSide(color: Colors.grey), // 灰色邊框
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.grey),
                               minimumSize: const Size(double.infinity, 50),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
