@@ -28,3 +28,5 @@ pubspec.lock
 *.pyc
 *.cc
 *.cmake
+
+python/server/

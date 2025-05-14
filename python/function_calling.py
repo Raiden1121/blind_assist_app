@@ -92,7 +92,8 @@ class ChatManager:
     def create_idle_chat(self):
         config = {
             "tools": self.tools,
-            "system_instruction": idle_instruction
+            "system_instruction": idle_instruction,
+            "temperature": 0
         }
         self.idle_chat = client.chats.create(
             model=MODEL, config=config)
