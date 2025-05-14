@@ -123,3 +123,24 @@ end_navigation_decl = types.FunctionDeclaration(
         "required": []
     }
 )
+
+
+get_current_step_decl = types.FunctionDeclaration(
+    name="get_current_step",
+    description="Get the current navigation step that the user is on",
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+)
+
+get_current_location_decl = types.FunctionDeclaration(
+    name="get_current_location",
+    description="Get the user's current geographic location",
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+)
