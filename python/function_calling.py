@@ -101,7 +101,8 @@ class ChatManager:
     def create_navigation_chat(self, route_info):
         config = {
             "tools": self.tools,
-            "system_instruction": get_navigation_instruction(route_info)
+            "system_instruction": get_navigation_instruction(route_info),
+            "temperature": 0
         }
         self.nav_chat = client.chats.create(
             model=MODEL, config=config)
