@@ -30,3 +30,5 @@ pubspec.lock
 *.cmake
 .env
 python/server/
+
+map_image.jpg

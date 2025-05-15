@@ -15,58 +15,65 @@ dotenv.load_dotenv()
 MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 # Replace existing system_instruction with:
 idle_instruction = """
-You are a digital assistant specifically designed for visually impaired users, equipped with powerful navigation capabilities.
+You are an AI assistant specialized in navigation for visually impaired users. Your primary goal is to help users understand their surroundings and navigate to their desired destinations safely and efficiently.
 
-You should call functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
+When a user expresses a need related to navigation, finding a location, or understanding their route:
+1.  **Clarify Destination**: If the destination is unclear, use `search_places` and/or `geocode_place` to identify and confirm the target location with the user.
+2.  **Determine Origin**: Silently obtain the user's current location using `get_current_location`. **Crucially, never ask the user for their current location.**
+3.  **Calculate Route**: Use `compute_route` to plan the path from their current location to the destination.
+4.  **Propose Route**: Present the calculated route to the user, including estimated distance and travel time. Ask if they wish to proceed.
+5.  **Initiate Navigation**: If the user agrees, call `start_navigation` to begin guided navigation. **Ensure `compute_route` has been successfully called before `start_navigation` so the latest route is used.**
 
-Example for location-related requests:
-- First use search_places and geocode_place to find the destination location
-- Get the current location using get_current_location
-- Then use compute_route to calculate the route from current user location to the destination
-- Ask whether the user wants to use this route, providing the distance and estimated time
-- If the user agrees, call start_navigation to begin guided navigation
+**Image Interpretation**:
+During interactions (both idle and navigation), you will receive a sequence of images. The first image is a map overview of the user's vicinity. Subsequent images are from the user's forward-facing camera. Use these images to:
+    * Answer user questions about their surroundings.
+    * Provide descriptive information about what is visible.
+    * Enhance your understanding of the environment for navigation purposes.
 
-Call get_current_location to get the user's current location if you cannot determine it. Never ask the user for their location.
-For non-navigation questions, respond directly without using tool functions.
+**General Interaction**:
+* For non-navigation related questions, respond conversationally and directly without invoking navigation tools.
+* **Output Format**: All your textual responses to the user must be clear, concise, and delivered **only as text instructions** in the language of the user's input. Do not include any other formatting, metadata, or conversational fillers beyond the direct answer or instruction.
 
-Important: Don't call multiple functions at the same time. You should call compute_route before start_navigation so the last computed route is used.
-Respond with text instructions only in final output and nothing else (in the language of user input).
-Now, greet the user and ask how you can assist them.
+Now, greet the user and ask how you can assist them today.
 """
-
-
 def get_navigation_instruction(route_info):
     return f"""
-You are now in navigation mode, actively guiding a visually impaired user along their route.
-Current route information:
+You are now in **active navigation mode**, guiding a visually impaired user. Focus on providing clear, actionable, and timely instructions.
+The current route information is: {route_info}
 
-Your responsibilities:
-1. Process user's current location and progress along the route
-2. Provide clear, concise directions for the next step
-3. Alert about any obstacles or hazards detected in camera images
-4. Monitor arrival at waypoints or destination
-5. Call end_navigation when:
-   - User requests to stop or end navigation
-   - User has arrived at destination
-   - Navigation needs to be cancelled
-   - Other situations where navigation should end
-6. Call restart_navigation when:
-   - User deviates from the route (get_current_step returns None)
-   - User requests to change route or go to a different location (ask first)
+**Core Responsibilities during Active Navigation**:
+1.  **Provide Step-by-Step Guidance**:
+    * Use `get_current_step` to retrieve the current instruction if you are unsure of the user's progress on the route.
+    * Deliver clear, concise directions for the immediate next action (e.g., "Turn left in 20 meters at the next intersection," "Continue straight for 50 meters").
+    * Verbally announce upcoming turns, landmarks, and distances.
+2.  **Environmental Awareness & Safety (using camera images)**:
+    * Analyze the map overview and camera images provided with each turn.
+    * Proactively alert the user to potential obstacles, hazards (e.g., "Caution, uneven pavement ahead," "Low-hanging branch detected"), or changes in terrain detected in the camera feed.
+    * Describe nearby points of interest or environmental features if relevant or requested.
+3.  **Location Monitoring**:
+    * Continuously track the user's progress.
+    * Use `get_current_location` if you need to confirm the user's position. **Never ask the user for their current location.**
+4.  **Manage Route Adherence**:
+    * If `get_current_step` returns `None` (indicating deviation), or if the user is significantly off-route, inform them and then call `restart_navigation` to recalculate the route from their current position to the original destination.
+5.  **Handle Route Changes/Requests**:
+    * If the user requests to go to a **different location**:
+        a. Confirm their intention to change the destination.
+        b. Use tools like `search_places` and `geocode_place` to determine the coordinates of the new destination.
+        c. Call `restart_navigation` with the new destination coordinates.
+    * If the user asks about alternative routes to the *current* destination, you may use tools to explore this, confirm with the user, and then call `restart_navigation` if a new route is chosen.
+6.  **Ending Navigation**: Call `end_navigation` and immediately cease other actions for the current turn when:
+    * The user explicitly requests to stop or end navigation.
+    * The user has arrived at the destination.
+    * Navigation needs to be cancelled for any other critical reason (e.g., persistent inability to find a valid route).
 
+**Interaction Guidelines**:
+* **Tool Usage**: Beyond the core navigation loop, use navigation tools if the user asks specific questions about the route, locations, or their surroundings that require tool assistance.
+* **Instruction Style**: Keep instructions brief, direct, and focused on immediate safety and the next required maneuver.
+* **"NO_UPDATE" Response**: If the user sends an empty message (e.g., only images) and there's no significant change in their location, surroundings, or route status, respond with the exact string "NO_UPDATE". This is an internal signal; do not say "NO_UPDATE" to the user.
+* **Output Format**: All your textual responses to the user must be clear, concise, and delivered **only as text instructions** in the language of the user's input.
 
-Call get_current_location to get the user's current location if you cannot determine it. Never ask the user for their location.
-You should use functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
-You should call get_current_step to get the current step of the route if you cannot determine which step the user is currently on.
-Keep instructions brief and clear. Focus on immediate next steps and safety.
-When the user request to go to a different location, you should use other functions to determine the locations first then call restart_navigation with new coordinate.
-
-Important: Don't call multiple functions at the same time. Afer calling end_navigation you should end current turn immediately and do nothing else.
-Respond with text instructions only in final output and nothing else (in the language of user input). 
-If the message contains no text, and the current location or surroundings has not changed much, you should respond with "NO_UPDATE"
-Now, please provide relevant instructions for the first step of the route.
+Begin by providing the relevant instructions for the first step of the current route.
 """
-
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))  # v1.x client
 
@@ -89,8 +96,8 @@ navigating_routes_tool = [types.Tool(function_declarations=[
     end_navigation_decl,
     get_current_step_decl,
     get_current_location_decl,
-    restart_navigation_decl,     # Add this line
-    get_full_route_decl     # Add this line
+    restart_navigation_decl,
+    get_full_route_decl
 ])]
 MODEL = "gemini-2.0-flash"
 
@@ -122,7 +129,7 @@ class ChatManager:
         config = {
             "tools": idle_routes_tool,
             "system_instruction": idle_instruction,
-            "temperature": 0
+            "temperature": 0.2
         }
         self.idle_chat = client.chats.create(
             model=MODEL, config=config)
@@ -132,7 +139,7 @@ class ChatManager:
         config = {
             "tools": navigating_routes_tool,
             "system_instruction": get_navigation_instruction(route_info),
-            "temperature": 0
+            "temperature": 0.2
         }
         self.nav_chat = client.chats.create(
             model=MODEL, config=config)
@@ -659,26 +666,69 @@ async def ask_llm(message, images=None):
         print(traceback.format_exc())
         return None, f"Error in ask_llm: {str(e)}"
 
+async def get_static_map_image(location, navigation_state) -> bytes:
+    """
+    Get a static map image from Google Maps API for the current location and route
+    Returns the image as bytes
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            # Create static map URL with markers and appropriate zoom
+            map_url = (
+                "https://maps.googleapis.com/maps/api/staticmap?"
+                f"center={location[0]},{location[1]}&"
+                "zoom=17&"
+                "size=600x600&"
+                f"markers=color:red%7C{location[0]},{location[1]}&"
+                "maptype=roadmap&"
+                f"key={MAP_KEY}"
+            )
+            if navigation_state.status == "Navigating" and navigation_state.current_route:
+                # Add path for navigation route if available
+                polyline = navigation_state.current_route.get("polyline", {}).get("encodedPolyline", "")
+                if polyline:
+                    map_url += f"&path=weight:3%7Ccolor:blue%7Cenc:{polyline}"
+            
+            r = await c.get(map_url)
+            r.raise_for_status()
+            return r.content
+    except Exception as e:
+        print(f"Error getting static map: {e}")
+        return None
 
 async def chatbot_conversation(user_input: str, images=None) -> str:
     global chat, navigation_state, new_destination, mode_swicthed
     while True:
         location = await get_current_location()
+        
+        # Get static map and combine with other images
+        map_image = await get_static_map_image(location, navigation_state)
+        # Write the map image to a file for debugging
+        if map_image:
+            with open("map_image.jpg", "wb") as f:
+                f.write(map_image)
+            print("Map image saved as map_image.jpg")
+        combined_images = []
+        if map_image:
+            combined_images.append(map_image)
+        if images:
+            if isinstance(images, bytes):
+                combined_images.append(images)
+            else:
+                combined_images.extend(images)
 
         if navigation_state.status == "Navigating":
-            # If in navigation mode, use the current step for context
             navigation_state.current_step = deviation.get_current_step(
                 location[0], location[1], navigation_state.current_route, 20)
 
         if new_destination:
-            # If a new destination is set, use it for geocoding
             user_input = f"Take me to coordinate [{new_destination}]"
             new_destination = None
 
-        response = await ask_llm(user_input, images=images)
+        response = await ask_llm(user_input, images=combined_images)
         if response[1] is not None and response[1] != "":
             break
-    # Print mode-specific status
+    
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
     print(f"[Mode: {mode}]")  # debug
 
