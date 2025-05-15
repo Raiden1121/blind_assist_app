@@ -8,9 +8,10 @@ import gemini_chat_pb2
 import gemini_chat_pb2_grpc
 
 SERVER_ADDRESS = 'localhost:50051'
+# SERVER_ADDRESS = '34.46.68.206:1025'
 
 DUMMY_IMAGE_PATH = "dummy_image.jpg"
-DUMMY_AUDIO_PATH = "./audio/dummy_audio2.wav"
+DUMMY_AUDIO_PATH = "./audio/dummy_audio1.wav"
 
 async def generate_requests():
     # 1) Send an image
