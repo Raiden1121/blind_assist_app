@@ -93,6 +93,15 @@ navigating_routes_tool = [types.Tool(function_declarations=[
 ])]
 MODEL = "gemini-2.0-flash"
 
+current_loc=None
+
+def set_current_location(loc) -> None:
+    """
+    Set the current location for testing purposes
+    """
+    global current_loc
+    current_loc = loc
+    print(f"Current location set to: {current_loc}")  # debug
 
 @dataclass
 class NavigationState:
@@ -135,13 +144,12 @@ chat = chat_manager.create_idle_chat()  # Initialize with idle chat
 
 navigation_state = NavigationState()
 
-
 async def get_current_location() -> dict:
     """
     優先用 ipapi ≈ 300 毫秒；失敗再後備 geocoder.ip('me')
     回傳 (lat, lng)
     """
-    current_loc = {"lat": 24.970632523750954, "lng": 121.1955897039094}
+    global current_loc
     print("Getting current location: ", current_loc)  # debug
     return [current_loc["lat"], current_loc["lng"]]
     # try:
@@ -163,11 +171,6 @@ async def get_current_location() -> dict:
 
 
 async def geocode_place(query: str) -> dict:
-    if query == "CURRENT_LOCATION":
-        # Use the current location from the get_current_location function
-        current_lat, current_lng = await get_current_location()
-        return {"lat": current_lat, "lng": current_lng}
-
     async with httpx.AsyncClient(timeout=10) as c:
         print("Geocoding", query)  # debug
         r = await c.get(
@@ -298,7 +301,7 @@ async def search_places(query: str,
             params["radius"] = min(radius, 50000)  # Cap at 50km
 
     async with httpx.AsyncClient(timeout=10) as c:
-        print(f"Searching places: {query}")  # debug
+        print(f"Searching places: {query}, {location}, {radius}")  # debug
         r = await c.get(
             "https://maps.googleapis.com/maps/api/place/textsearch/json",
             params=params
@@ -446,7 +449,7 @@ async def get_full_route() -> dict:
 # ───────── Recursive tool orchestration ─────────
 
 
-async def ask_llm(message, image=None, images=None):
+async def ask_llm(message, images=None):
     """
     Handles LLM interaction with function calling support
 
@@ -481,15 +484,11 @@ async def ask_llm(message, image=None, images=None):
             resp = chat.send_message(types.Part(function_response=message))
         elif isinstance(message, types.Part):
             resp = chat.send_message(message)
-        elif isinstance(message, str) and (image is not None or images is not None):
+        elif isinstance(message, str) and (images is not None):
             message_parts = []
             message_parts.append(message)
-
-            if image is not None:
-                print(f"Adding single image: {len(image)} bytes")
-                message_parts.append(types.Part.from_bytes(
-                    data=image, mime_type="image/jpeg"))
-            elif images is not None:
+            
+            if images is not None:
                 if isinstance(images, bytes):
                     print(
                         f"Adding single image from images param: {len(images)} bytes")
@@ -660,7 +659,7 @@ async def ask_llm(message, image=None, images=None):
         return None, f"Error in ask_llm: {str(e)}"
 
 
-async def chatbot_conversation(user_input: str):
+async def chatbot_conversation(user_input: str, images=None) -> str:
     global chat, navigation_state, new_destination, mode_swicthed
     location = await get_current_location()
 
@@ -674,7 +673,7 @@ async def chatbot_conversation(user_input: str):
         user_input = f"Take me to coordinate [{new_destination}]"
         new_destination = None
 
-    response = await ask_llm(user_input)
+    response = await ask_llm(user_input, images=images)
 
     # Print mode-specific status
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"

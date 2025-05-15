@@ -85,7 +85,7 @@ search_places_decl = {
                 "description": "Optional search radius in meters (max 50000)"
             }
         },
-        "required": ["query"]
+        "required": ["query","location"]
     }
 }
 

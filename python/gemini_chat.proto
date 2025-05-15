@@ -39,14 +39,21 @@ message ImageInput {
   // google.protobuf.Timestamp timestamp = 5;
 }
 
+message MultiImageInput {
+  repeated ImageInput images = 1;
+}
+
+message LocationInput {
+  float lat = 1;
+  float lng = 2;
+}
+
 // 輸入訊息封包：音訊或影像（或文字）
 message ChatRequest {
   // 可擴充：如果未來要加文字或其他類型也能放這裡
-  oneof input {
-    AudioInput audio = 1;
-    ImageInput image = 2;
-    // string text = 3;
-  }
+  AudioInput audio = 1;
+  LocationInput location = 4;
+  MultiImageInput multi_images = 5;
   // 客戶端 request Id (可選，用於追蹤)
   string request_id = 10;
 }

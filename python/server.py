@@ -17,9 +17,7 @@ import speech_recognition as sr
 import httpx
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
-from function_calling import (
-    chatbot_conversation
-)
+import function_calling
 
 load_dotenv()
 
@@ -82,7 +80,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
         audio_text = ""
         llm_resp = None
         steps = None
-
+        
         # Process incoming requests
         async for request in request_iterator:
             logging.info(f"Received request: ")
@@ -100,18 +98,11 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 lat = request.location.lat
                 lng = request.location.lng
                 logging.info(f"Received location: {lat}, {lng}")
-                current_location = f". Current Location coordinates: {lat}, {lng}."
-                audio_text += current_location
-                logging.info(f"Updated audio text with location: {audio_text}")
+                
+                function_calling.set_current_location({"lat": lat, "lng": lng})
             
-            if request.HasField("image") and request.image.data:
-                image_data = request.image.data
-                logging.info(f"Received single image: {len(image_data)} bytes")
-                                
-                llm_resp = await chatbot_conversation(audio_text)
-                alert_resp = await chatbot_conversation(image_alert_prompt, image_data, None)
-                logging.info(f"Received image alert response: {alert_resp}")
-            elif request.HasField("multi_images"):
+            
+            if request.HasField("multi_images"):
                 multi_images = []
                 for img in request.multi_images.images:
                     if img.data:
@@ -119,10 +110,10 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
             
                 logging.info(f"Received multiple images: {len(multi_images)} images")
             
-                llm_resp = await chatbot_conversation(audio_text)
-                alert_resp = await chatbot_conversation(images_alert_prompt, None, multi_images)
+                llm_resp = await function_calling.chatbot_conversation(audio_text)
+                alert_resp = await function_calling.chatbot_conversation(images_alert_prompt, multi_images)
             else:
-                llm_resp = await chatbot_conversation(audio_text)
+                llm_resp = await function_calling.chatbot_conversation(audio_text)
                 logging.info(f"Received text: {llm_resp}")
             # Here you would typically process the request and generate a response
             response = gemini_chat_pb2.ChatResponse()
