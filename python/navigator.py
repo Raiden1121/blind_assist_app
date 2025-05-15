@@ -17,7 +17,7 @@ MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 idle_instruction = """
 You are a digital assistant specifically designed for visually impaired users, equipped with powerful navigation capabilities.
 
-You should use functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
+You should call functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
 
 Example for location-related requests:
 - First use search_places and geocode_place to find the destination location
@@ -26,10 +26,12 @@ Example for location-related requests:
 - Ask whether the user wants to use this route, providing the distance and estimated time
 - If the user agrees, call start_navigation to begin guided navigation
 
+Call get_current_location to get the user's current location if you cannot determine it. Never ask the user for their location.
 For non-navigation questions, respond directly without using tool functions.
 
-Important: Don't call multiple functions at the same time. Afer calling start_navigation you should end current turn immediately and do nothing else.
+Important: Don't call multiple functions at the same time. You should call compute_route before start_navigation so the last computed route is used.
 Respond with text instructions only in final output and nothing else (in the language of user input).
+Now, greet the user and ask how you can assist them.
 """
 
 
@@ -37,9 +39,6 @@ def get_navigation_instruction(route_info):
     return f"""
 You are now in navigation mode, actively guiding a visually impaired user along their route.
 Current route information:
-```json
-{json.dumps(route_info, indent=2)}
-```
 
 Your responsibilities:
 1. Process user's current location and progress along the route
@@ -47,7 +46,7 @@ Your responsibilities:
 3. Alert about any obstacles or hazards detected in camera images
 4. Monitor arrival at waypoints or destination
 5. Call end_navigation when:
-   - User requests to stop navigation
+   - User requests to stop or end navigation
    - User has arrived at destination
    - Navigation needs to be cancelled
    - Other situations where navigation should end
@@ -56,14 +55,16 @@ Your responsibilities:
    - User requests to change route or go to a different location (ask first)
 
 
-Call get_current_location to get the user's current location if you cannot determine it.
+Call get_current_location to get the user's current location if you cannot determine it. Never ask the user for their location.
 You should use functions provided by navigation tools when the user asks about navigation, routes, locations, or other cases you deemed appropriate.
 You should call get_current_step to get the current step of the route if you cannot determine which step the user is currently on.
 Keep instructions brief and clear. Focus on immediate next steps and safety.
 When the user request to go to a different location, you should use other functions to determine the locations first then call restart_navigation with new coordinate.
 
 Important: Don't call multiple functions at the same time. Afer calling end_navigation you should end current turn immediately and do nothing else.
-Respond with text instructions only in final output and nothing else (in the language of user input).
+Respond with text instructions only in final output and nothing else (in the language of user input). 
+If the message contains no text, and the current location or surroundings has not changed much, you should respond with "NO_UPDATE"
+Now, please provide relevant instructions for the first step of the route.
 """
 
 
@@ -661,20 +662,22 @@ async def ask_llm(message, images=None):
 
 async def chatbot_conversation(user_input: str, images=None) -> str:
     global chat, navigation_state, new_destination, mode_swicthed
-    location = await get_current_location()
+    while True:
+        location = await get_current_location()
 
-    if navigation_state.status == "Navigating":
-        # If in navigation mode, use the current step for context
-        navigation_state.current_step = deviation.get_current_step(
-            location[0], location[1], navigation_state.current_route, 20)
+        if navigation_state.status == "Navigating":
+            # If in navigation mode, use the current step for context
+            navigation_state.current_step = deviation.get_current_step(
+                location[0], location[1], navigation_state.current_route, 20)
 
-    if new_destination:
-        # If a new destination is set, use it for geocoding
-        user_input = f"Take me to coordinate [{new_destination}]"
-        new_destination = None
+        if new_destination:
+            # If a new destination is set, use it for geocoding
+            user_input = f"Take me to coordinate [{new_destination}]"
+            new_destination = None
 
-    response = await ask_llm(user_input, images=images)
-
+        response = await ask_llm(user_input, images=images)
+        if response[1] is not None and response[1] != "":
+            break
     # Print mode-specific status
     mode = "Navigation" if navigation_state.status == "Navigating" else "Idle"
     print(f"[Mode: {mode}]")  # debug
@@ -684,16 +687,14 @@ async def chatbot_conversation(user_input: str, images=None) -> str:
 if __name__ == "__main__":
     print("視障者助手已啟動。輸入 'exit' 結束對話。")
     print("[Mode: Idle]")
-    response = None
-    user_input = ""
+    set_current_location({"lat": 24.970476889286168, "lng": 121.19565504407139})  # Set initial location for testing
     while True:
-        if (response and response != ""):
-            user_input = input("您: ")
-            if user_input.lower() in ['exit', 'quit', '結束', '退出']:
-                if navigation_state.status == "Navigating":
-                    asyncio.run(end_navigation())
-                print("助手: 再見！")
-                break
+        user_input = input("您: ")
+        if user_input.lower() in ['exit', 'quit', '結束', '退出']:
+            if navigation_state.status == "Navigating":
+                asyncio.run(end_navigation())
+            print("助手: 再見！")
+            break
 
         response = asyncio.run(chatbot_conversation(user_input))
         print(f"助手: {response}")
