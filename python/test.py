@@ -17,12 +17,14 @@ async def generate_requests():
     # 1) Send an image
      req = gemini_chat_pb2.ChatRequest()
     
-     with open(DUMMY_AUDIO_PATH, "rb") as f:
-        req.audio.data = f.read()
-     req.audio.format = "wav"
-     req.audio.sample_rate_hz = 0
-     logging.info("Client: sending audio")
-     req.request_id = "1"
+    #  with open(DUMMY_AUDIO_PATH, "rb") as f:
+    #     req.audio.data = f.read()
+    #  req.audio.format = "wav"
+    #  req.audio.sample_rate_hz = 0
+    #  logging.info("Client: sending audio")
+    #  req.request_id = "1"
+    
+     req.text = "I want to go to thee nearest 7-11"   
     
      img1 = gemini_chat_pb2.ImageInput()
      with open(DUMMY_IMAGE_PATH, "rb") as f:

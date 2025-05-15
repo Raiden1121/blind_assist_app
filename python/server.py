@@ -17,7 +17,7 @@ import speech_recognition as sr
 import httpx
 from google import genai  # v1.x import path
 from google.genai import types  # FunctionCall / Content
-import function_calling
+import navigator
 
 load_dotenv()
 
@@ -26,7 +26,6 @@ MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 GOOGLE_SPEECH_API_KEY = os.getenv("GOOGLE_SPEECH_API_KEY")
 logging.basicConfig(level=logging.INFO)
 
-image_alert_prompt = "Analyze this image for hazards or obstacles and output a concise alert stating the risk and recommended action."
 images_alert_prompt = "Analyze these walking-scene images for hazards or obstacles and for each image output a brief alert with the risk and recommended action."
 
 def transcribe_audio(audio_bytes):
@@ -77,6 +76,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
         """
         logging.info("ChatStream called")
         
+        text_prompt = ""
         audio_text = ""
         llm_resp = None
         steps = None
@@ -85,22 +85,26 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
         async for request in request_iterator:
             logging.info(f"Received request: ")
             
-            if (request.HasField("audio") and request.audio.data):
-                audio_text = await asyncio.to_thread(
-                    transcribe_audio, request.audio.data)
-                
-                if audio_text:
-                    logging.info(f"Transcribed audio text: {audio_text}")
-                else:
-                    logging.error("Failed to transcribe audio")
-            
             if (request.HasField("location") and request.location.lat and request.location.lng):
                 lat = request.location.lat
                 lng = request.location.lng
                 logging.info(f"Received location: {lat}, {lng}")
                 
-                function_calling.set_current_location({"lat": lat, "lng": lng})
-            
+                navigator.set_current_location({"lat": lat, "lng": lng})
+        
+            if (request.HasField("text") and request.text): # debug
+                text_prompt = request.text
+                logging.info(f"Received text: {text_prompt}")
+                llm_resp = await navigator.chatbot_conversation(text_prompt)
+            elif (request.HasField("audio") and request.audio.data):
+                audio_text = await asyncio.to_thread(
+                    transcribe_audio, request.audio.data)
+                
+                if audio_text:
+                    llm_resp = await navigator.chatbot_conversation(audio_text)
+                    logging.info(f"Transcribed audio text: {audio_text}")
+                else:
+                    logging.error("Failed to transcribe audio")
             
             if request.HasField("multi_images"):
                 multi_images = []
@@ -110,11 +114,8 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
             
                 logging.info(f"Received multiple images: {len(multi_images)} images")
             
-                llm_resp = await function_calling.chatbot_conversation(audio_text)
-                alert_resp = await function_calling.chatbot_conversation(images_alert_prompt, multi_images)
-            else:
-                llm_resp = await function_calling.chatbot_conversation(audio_text)
-                logging.info(f"Received text: {llm_resp}")
+                alert_resp = await navigator.chatbot_conversation(images_alert_prompt, multi_images)
+
             # Here you would typically process the request and generate a response
             response = gemini_chat_pb2.ChatResponse()
             response.nav.alert = alert_resp

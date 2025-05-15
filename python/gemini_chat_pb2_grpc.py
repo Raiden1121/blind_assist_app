@@ -26,9 +26,7 @@ if _version_not_supported:
 
 
 class GeminiChatStub(object):
-    """import "google/protobuf/timestamp.proto";
-
-    定義 Gemini Chat 服務
+    """定義 Gemini Chat 服務
     """
 
     def __init__(self, channel):
@@ -45,9 +43,7 @@ class GeminiChatStub(object):
 
 
 class GeminiChatServicer(object):
-    """import "google/protobuf/timestamp.proto";
-
-    定義 Gemini Chat 服務
+    """定義 Gemini Chat 服務
     """
 
     def ChatStream(self, request_iterator, context):
@@ -74,9 +70,7 @@ def add_GeminiChatServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class GeminiChat(object):
-    """import "google/protobuf/timestamp.proto";
-
-    定義 Gemini Chat 服務
+    """定義 Gemini Chat 服務
     """
 
     @staticmethod
