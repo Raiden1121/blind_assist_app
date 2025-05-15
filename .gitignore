@@ -28,5 +28,5 @@ pubspec.lock
 *.pyc
 *.cc
 *.cmake
-
+.env
 python/server/
