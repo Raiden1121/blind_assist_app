@@ -160,3 +160,13 @@ restart_navigation_decl = {
         "required": ["new_location"]
     }
 }
+
+get_full_route_decl = {
+    "name": "get_full_route",
+    "description": "Gets the full route information for the current navigation session",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+    }
+}

@@ -88,7 +88,8 @@ navigating_routes_tool = [types.Tool(function_declarations=[
     end_navigation_decl,
     get_current_step_decl,
     get_current_location_decl,
-    restart_navigation_decl     # Add this line
+    restart_navigation_decl,     # Add this line
+    get_full_route_decl     # Add this line
 ])]
 MODEL = "gemini-2.0-flash"
 
@@ -428,6 +429,20 @@ async def restart_navigation(new_location) -> None:
     new_destination = new_location
     print("Navigation restarted, new coordinate is "+new_destination)  # debug
     return
+
+
+async def get_full_route() -> dict:
+    """
+    Returns the full route information for the current navigation session
+    """
+    if navigation_state.status != "Navigating":
+        raise ValueError("No active navigation session")
+
+    if not navigation_state.current_route:
+        raise ValueError("No route information available")
+
+    return navigation_state.current_route
+
 # ───────── Recursive tool orchestration ─────────
 
 
@@ -608,6 +623,17 @@ async def ask_llm(message, image=None, images=None):
                     except Exception as e:
                         print(f"Error restarting navigation: {e}")
                         return None, f"Error restarting navigation: {str(e)}"
+                elif fn.name == "get_full_route":
+                    try:
+                        route = await get_full_route()
+                        fn_resp = types.FunctionResponse(
+                            name="get_full_route",
+                            response=route
+                        )
+                        return await ask_llm(fn_resp)
+                    except Exception as e:
+                        print(f"Error getting full route: {e}")
+                        return None, f"Error getting full route: {str(e)}"
             except Exception as e:
                 print(f"Error in {fn.name}: {e}")
                 return None, f"Error executing {fn.name}: {str(e)}"
