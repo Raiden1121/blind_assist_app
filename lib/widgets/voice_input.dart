@@ -164,12 +164,16 @@ class _VoiceInputState extends State<VoiceInput> {
     return Listener(
       onPointerDown: (_) => _startRecording(),
       onPointerUp: (_) => _stopRecording(),
-      child: FloatingActionButton(
-        backgroundColor: _isRecording ? Colors.redAccent : Colors.blueGrey,
-        onPressed: () {},
-        child: Icon(
-          _isRecording ? Icons.mic : Icons.mic_none,
-          size: 36,
+      child: SizedBox(
+        width: 100,
+        height: 100,
+        child: FloatingActionButton(
+          backgroundColor: _isRecording ? Colors.redAccent : Colors.blueGrey,
+          onPressed: () {},
+          child: Icon(
+            _isRecording ? Icons.mic : Icons.mic_none,
+            size: 36,
+          ),
         ),
       ),
     );
