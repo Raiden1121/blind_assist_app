@@ -1,0 +1,5 @@
+grpcio>=1.53.0
+grpcio-tools
+google-genai>=1.14.0
+python-dotenv
+

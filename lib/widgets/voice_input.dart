@@ -62,11 +62,10 @@ class _VoiceInputState extends State<VoiceInput> {
 
   void _initGrpc() {
     _channel = grpc.ClientChannel(
-      'blind-grpc-server-617941879669.asia-east1.run.app',
+      'blind-liveapi-grpc-617941879669.asia-east1.run.app',
       port: 443,
       options: grpc.ChannelOptions(
         credentials: grpc.ChannelCredentials.secure(),
-        idleTimeout: const Duration(seconds: 60),
       ),
     );
     _grpcClient = GeminiLiveClient(_channel);

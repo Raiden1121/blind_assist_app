@@ -122,16 +122,20 @@ class _CameraViewState extends State<CameraView> {
     _grpcClient = GeminiLiveClientWrapper();
     // 傳入 host & port
     await _grpcClient.init(
-      host: 'blind-grpc-server-617941879669.asia-east1.run.app',
+      host: 'blind-liveapi-grpc-617941879669.asia-east1.run.app',
       port: 443,
     );
 
     // 建立 StreamController 並先送 initialConfig
     _reqCtrl = StreamController<ClientRequest>();
-    _reqCtrl.add(ClientRequest()
-      ..initialConfig = (InitialConfigRequest()
-        ..modelName = 'models/gemini-2.0-flash-live-001'
-        ..responseModalities.addAll(['AUDIO', 'TEXT'])));
+    _reqCtrl.add(
+      ClientRequest(
+        initialConfig: InitialConfigRequest(
+          modelName: 'models/gemini-2.0-flash-live-001',
+          responseModalities: ['AUDIO', 'TEXT'],
+        ),
+      ),
+    );
 
     // 雙向串流
     _respStream = _grpcClient.chatStream(_reqCtrl.stream);

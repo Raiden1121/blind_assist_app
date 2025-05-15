@@ -123,7 +123,9 @@ class GeminiLiveServicer(blind_assist_pb2_grpc.GeminiLiveServicer):
 async def serve():
     server = grpc.aio.server()
     blind_assist_pb2_grpc.add_GeminiLiveServicer_to_server(GeminiLiveServicer(), server)
-    listen_addr = '[::]:50051'
+
+    port = os.environ.get("PORT", "50051")
+    listen_addr = f"[::]:{port}"
     server.add_insecure_port(listen_addr)
     logging.info(f"Starting gRPC server on {listen_addr}...")
     await server.start()
