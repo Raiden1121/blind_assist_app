@@ -46,8 +46,8 @@ class _VoiceInputState extends State<VoiceInput> {
   void initState() {
     super.initState();
 
-    // _reqController = StreamController<ChatRequest>.broadcast();
-    // 啟動 gRPC 串流
+    // _reqController = StreamController<ChatRequest>();
+    // // 啟動 gRPC 串流
     // _respSub = GrpcClient.chatStream(_reqController.stream).listen(
     //     _onServerResponse,
     //     onError: (e) => debugPrint('❌ gRPC error: \$e'),
@@ -146,9 +146,6 @@ class _VoiceInputState extends State<VoiceInput> {
     }
     if (_isRecording || _recorder.isRecording) return;
 
-    _chunks.clear();
-    await _audioSub?.cancel();
-
     _audioSub = _audioStreamController?.stream.listen((chunk) {
       bool hasNonZeroData = chunk.any((byte) => byte != 0);
       if (hasNonZeroData) {
@@ -195,6 +192,7 @@ class _VoiceInputState extends State<VoiceInput> {
           (merged.length / 2 / 16000 * 1000).round(); // 16-bit samples at 16kHz
       debugPrint(
           '📊 Audio stats: ${audioSize.toStringAsFixed(1)}KB, ${durationMs}ms');
+
       // _reqController.add(
       //   ChatRequest()
       //     ..audio = (AudioInput()
@@ -236,6 +234,9 @@ class _VoiceInputState extends State<VoiceInput> {
         onDone: () => debugPrint('🔚 gRPC stream closed'),
       );
 
+      _chunks.clear();
+      await _audioSub?.cancel();
+
       debugPrint('🔊 Sent audio data: ${merged.length} bytes');
     }
 
@@ -247,6 +248,21 @@ class _VoiceInputState extends State<VoiceInput> {
       debugPrint('🛑 stopRecorder 失敗：$e');
     }
   }
+
+  // void _onServerResponse(ChatResponse response) async {
+  //   if (response.hasNav()) {
+  //     final nav = response.nav;
+  //     // if (nav.alert.isNotEmpty) {
+  //     //   await _flutterTts.speak(nav.alert);
+  //     // }
+  //     if (nav.navDescription != "") {
+  //       await _flutterTts.speak(nav.navDescription);
+  //       debugPrint('🔊 語音播報: ${nav.navDescription}');
+  //     } else if (nav.navDescription.contains("Error")) {
+  //       await _flutterTts.speak("Please try again.");
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

@@ -26,7 +26,11 @@ MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 GOOGLE_SPEECH_API_KEY = os.getenv("GOOGLE_SPEECH_API_KEY")
 logging.basicConfig(level=logging.INFO)
 
-images_alert_prompt = "Analyze these walking-scene images for hazards or obstacles and for each image output a brief alert with the risk and recommended action."
+images_alert_prompt = """
+Analyze these walking-scene images for hazards or obstacles and for each image output a brief alert with the risk and recommended action. 
+If there are hazards or obstacles or red light, please output the alert in the following format: Alert: <alert>
+If there are no hazards or obstacles, please output: No alert.
+"""
 
 def transcribe_audio(audio_bytes):
     recognizer = sr.Recognizer()
@@ -58,7 +62,7 @@ def transcribe_audio(audio_bytes):
         return text
     except sr.UnknownValueError:
         logging.warning("Google Speech Recognition could not understand audio")
-        return None
+        return "Cannot understand audio"
     except sr.RequestError as e:
         logging.error(f"Could not request results from Google Speech Recognition service; {e}")
         return None
@@ -100,7 +104,10 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 audio_text = await asyncio.to_thread(
                     transcribe_audio, request.audio.data)
                 
-                if audio_text:
+                if audio_text == "Cannot understand audio":
+                    llm_resp = "Please repeat your request."
+                    logging.warning("Audio transcription failed: Cannot understand audio")
+                elif audio_text:
                     llm_resp = await navigator.chatbot_conversation(audio_text)
                     logging.info(f"Transcribed audio text: {audio_text}")
                 else:
