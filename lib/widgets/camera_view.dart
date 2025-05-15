@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as imglib;
-import 'package:blind_assist_app/grcp/gemini_live_client.dart';
+import 'package:blind_assist_app/grpc/gemini_live_client.dart';
 import 'package:blind_assist_app/generated/blind_assist.pb.dart';
 import 'package:blind_assist_app/generated/blind_assist.pbgrpc.dart';
 import 'package:blind_assist_app/widgets/speech_player.dart';

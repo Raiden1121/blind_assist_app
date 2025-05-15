@@ -18,6 +18,7 @@ import 'package:blind_assist_app/widgets/voice_input.dart'; // 語音輸入工�
 import 'package:blind_assist_app/widgets/speech_player.dart'; // 語音播放工具
 // MCP 後端 API 呼叫
 import 'package:blind_assist_app/widgets/login_page.dart'; // 登入／註冊畫面
+import 'package:blind_assist_app/grpc/grpc_client.dart';
 
 void main() async {
   // 確保 Flutter 綁定初始化（執行 async 前必需）
@@ -27,6 +28,15 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  try {
+    // 初始化 gRPC 客戶端
+    await GrpcClient.init();
+    GrpcClient.testGrpc();
+    print("✅ gRPC Client initialized");
+  } catch (e) {
+    print("🔥 gRPC Client initialization failed: $e");
+  }
 
   // 啟動 Flutter 應用
   runApp(const BlindAssistApp());
@@ -96,6 +106,13 @@ class _AssistHomePageState extends State<AssistHomePage> {
         print("🔥 Firestore write failed: $e");
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // 釋放語音播放工具資源
+    GrpcClient.shutdown();
+    super.dispose();
   }
 
   @override

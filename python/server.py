@@ -30,7 +30,6 @@ images_alert_prompt = "Analyze these walking-scene images for hazards or obstacl
 
 def transcribe_audio(audio_bytes):
     recognizer = sr.Recognizer()
-    
     try:
         sample_rate = 16000 # default sample rate for Google Speech Recognition
         # if the audio_bytes is a WAV file, we need to convert it to PCM raw data
@@ -80,6 +79,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
         audio_text = ""
         llm_resp = None
         steps = None
+        alert_resp = None
         
         # Process incoming requests
         async for request in request_iterator:
@@ -106,7 +106,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 else:
                     logging.error("Failed to transcribe audio")
             
-            if request.HasField("multi_images"):
+            if request.HasField("multi_images") and len(request.multi_images.images) > 0:
                 multi_images = []
                 for img in request.multi_images.images:
                     if img.data:
@@ -118,12 +118,18 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
 
             # Here you would typically process the request and generate a response
             response = gemini_chat_pb2.ChatResponse()
-            response.nav.alert = alert_resp
+            if alert_resp:
+                response.nav.alert = alert_resp
+            else:
+                response.nav.alert = "No alert generated."
             if (steps is not None):
                 response.nav.nav_status = True
-                response.nav.nav_description = "Navigation instructions generated."
+                            
             response.nav.nav_status = False
-            response.nav.nav_description = llm_resp
+            if llm_resp:
+                response.nav.nav_description = llm_resp
+            else:
+                response.nav.nav_description = ""
             
             yield response
 

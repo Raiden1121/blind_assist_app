@@ -41,8 +41,8 @@ message LocationInput {
 message ChatRequest {
   optional AudioInput audio = 1;
   optional string text = 2;
-  LocationInput location = 3;
-  MultiImageInput multi_images = 4;
+  optional LocationInput location = 3;
+  optional MultiImageInput multi_images = 4;
 }
 
 message NavigationResponse {
