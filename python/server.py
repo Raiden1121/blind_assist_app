@@ -21,8 +21,6 @@ import navigator
 
 load_dotenv()
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-MAP_KEY = os.getenv("GOOGLE_MAPS_KEY")
 GOOGLE_SPEECH_API_KEY = os.getenv("GOOGLE_SPEECH_API_KEY")
 logging.basicConfig(level=logging.INFO)
 
