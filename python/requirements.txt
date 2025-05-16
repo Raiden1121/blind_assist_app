@@ -5,3 +5,4 @@ googlemaps
 dotenv
 polyline
 shapely
+SpeechRecognition
