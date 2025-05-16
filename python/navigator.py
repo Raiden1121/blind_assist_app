@@ -14,6 +14,7 @@ from google import genai
 from tool_schemas import *
 # Make sure deviation module is available
 import deviation
+from pydantic import BaseModel
 
 
 dotenv.load_dotenv()
@@ -117,6 +118,10 @@ navigating_routes_tool_declarations = [
     get_current_location_decl, restart_navigation_decl, get_full_route_decl
 ]
 
+class NavResponse(BaseModel):
+    response_text: str
+    alerts: List[str]
+    
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY")) 
 class ChatManager:
     def __init__(self, api_key: str):
@@ -158,17 +163,22 @@ class SessionState:
     current_route: Optional[Dict] = None
     current_step: Optional[Dict] = None
     chat: Optional[chats.Chat] = None
-    current_loc: Optional[Dict] = None  # e.g., {"lat": 0.0, "lng": 0.0}
+    current_loc: Optional[Dict] = None
     new_destination: Optional[str] = None
     mode_switched: bool = False
-    chat_manager: Optional[chats.Chat] = None
+    chat_manager: Optional[ChatManager] = None
     history: List[Any] = field(default_factory=list)
+    gemini_api_key: Optional[str] = None
+    maps_api_key: Optional[str] = None
 
     def __post_init__(self):
-        if self.chat_manager is None and GEMINI_API_KEY:
-            self.chat_manager = ChatManager(api_key=GEMINI_API_KEY)
-        if self.chat is None and self.chat_manager:
+        # Use provided API key or fallback to environment variable
+        gemini_key = self.gemini_api_key or GEMINI_API_KEY
+        if gemini_key:
+            self.chat_manager = ChatManager(api_key=gemini_key)
             self.chat = self.chat_manager.create_idle_chat_for_session()
+        else:
+            print(f"Warning: Session {self.session_id} - No Gemini API key available")
 
 
 def set_current_location(session_state: SessionState, loc: Dict) -> None:
@@ -220,6 +230,11 @@ async def reverse_geocode(session_state: SessionState, lat: float, lng: float) -
 
 
 async def compute_route(session_state: SessionState, origin: str, destination: str, mode: str = "WALK") -> Dict:
+    # Use session-specific Maps API key if available
+    maps_key = session_state.maps_api_key or MAP_KEY
+    if not maps_key:
+        raise ValueError(f"Session {session_state.session_id}: No Maps API key available")
+        
     print(f"Session {session_state.session_id}: Computing route from {origin} to {destination} via {mode}")
     lat1, lng1 = map(float, origin.split(","))
     lat2, lng2 = map(float, destination.split(","))
@@ -233,7 +248,7 @@ async def compute_route(session_state: SessionState, origin: str, destination: s
         "travelMode": mode.upper(), # Ensure mode is uppercase
         "languageCode": "zh-TW"
     }
-    url = f"https://routes.googleapis.com/directions/v2:computeRoutes?key={MAP_KEY}"
+    url = f"https://routes.googleapis.com/directions/v2:computeRoutes?key={maps_key}"
     async with httpx.AsyncClient(timeout=20) as c:
         r = await c.post(url, headers=hdr, json=body)
     r.raise_for_status()
@@ -254,7 +269,11 @@ async def compute_route(session_state: SessionState, origin: str, destination: s
 
 
 async def search_places(session_state: SessionState, query: str, location: Optional[Dict] = None, radius: Optional[int] = None) -> List[Dict]:
-    params = {"query": query, "key": MAP_KEY, "language": "zh-TW"}
+    maps_key = session_state.maps_api_key or MAP_KEY
+    if not maps_key:
+        raise ValueError(f"Session {session_state.session_id}: No Maps API key available")
+        
+    params = {"query": query, "key": maps_key, "language": "zh-TW"}
     if location and "lat" in location and "lng" in location:
         params["location"] = f"{location['lat']},{location['lng']}"
         if radius:
@@ -268,12 +287,16 @@ async def search_places(session_state: SessionState, query: str, location: Optio
 
 
 async def place_details(session_state: SessionState, place_id: str) -> Dict:
+    maps_key = session_state.maps_api_key or MAP_KEY
+    if not maps_key:
+        raise ValueError(f"Session {session_state.session_id}: No Maps API key available")
+        
     fields = ["name", "formatted_address", "formatted_phone_number", "opening_hours", "rating", "website"]
     async with httpx.AsyncClient(timeout=10) as c:
         print(f"Session {session_state.session_id}: Getting details for place_id '{place_id}'")
         r = await c.get(
             "https://maps.googleapis.com/maps/api/place/details/json",
-            params={"place_id": place_id, "key": MAP_KEY, "language": "zh-TW", "fields": ",".join(fields)},
+            params={"place_id": place_id, "key": maps_key, "language": "zh-TW", "fields": ",".join(fields)},
         )
     r.raise_for_status()
     return r.json().get("result", {})
@@ -450,6 +473,10 @@ async def ask_llm(session_state: SessionState, message_content: Any, images: Opt
 
 
 async def get_static_map_image(session_state: SessionState, location_coords: List[float]) -> Optional[bytes]:
+    maps_key = session_state.maps_api_key or MAP_KEY
+    if not maps_key:
+        raise ValueError(f"Session {session_state.session_id}: No Maps API key available")
+        
     try:
         async with httpx.AsyncClient(timeout=10) as c:
             map_url_params = {
@@ -458,7 +485,7 @@ async def get_static_map_image(session_state: SessionState, location_coords: Lis
                 "size": "600x600",
                 "markers": f"color:red|{location_coords[0]},{location_coords[1]}",
                 "maptype": "roadmap",
-                "key": MAP_KEY
+                "key": maps_key
             }
             if session_state.status == "Navigating" and session_state.current_route:
                 polyline = session_state.current_route.get("polyline", {}).get("encodedPolyline")
@@ -475,7 +502,7 @@ async def get_static_map_image(session_state: SessionState, location_coords: Lis
         return None
 
 
-async def chatbot_conversation(session_state: SessionState, user_input: str, images: Optional[List[bytes]] = None) -> str:
+async def chatbot_conversation(session_state: SessionState, user_input: str, images: Optional[List[bytes]] = None) -> NavResponse:
     try:
         current_session_loc_list = await get_current_location(session_state)
     except ValueError as e: # Handle case where location is not set
@@ -516,8 +543,12 @@ async def chatbot_conversation(session_state: SessionState, user_input: str, ima
     
     mode_display = "Navigation" if session_state.status == "Navigating" else "Idle"
     print(f"[Session {session_state.session_id} Mode: {mode_display}] LLM Replied.")
-
-    return text_response
+    
+    alert_response = "NO_ALERT" # Placeholder for actual alert response logic
+    # _, alert_response = await ask_llm(session_state, "Analyze the camera images provided last turn (if any), do you see any potential hazards or obstacles? If none, please say 'NO_ALERT'.")
+    # alert_response = alert_response.strip()
+    response=NavResponse(response_text=text_response, alerts=[alert_response] if alert_response != "NO_ALERT" else [])
+    return response
 
 
 if __name__ == "__main__":
@@ -556,8 +587,8 @@ if __name__ == "__main__":
                     break
                 
                 # Simulate receiving no images for this test CLI
-                response_text = await chatbot_conversation(s_state, user_text, images=None)
-                print(f"Assistant (Session {test_session_id}): {response_text}")
+                response = await chatbot_conversation(s_state, user_text, images=None)
+                print(f"Assistant (Session {test_session_id}): {response.response_text}\n Alerts: {response.alerts}")
 
             except KeyboardInterrupt:
                 print("\nExiting local test due to KeyboardInterrupt.")

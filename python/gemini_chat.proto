@@ -4,8 +4,23 @@ package geminiChat;
 
 // 定義 Gemini Chat 服務
 service GeminiChat {
+  // 建立新會話，並可選擇性提供 API 金鑰
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  
   // 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
   rpc ChatStream(stream ChatRequest) returns (stream ChatResponse);
+}
+
+// 新增的會話建立訊息
+message CreateSessionRequest {
+  optional string gemini_api_key = 1;
+  optional string maps_api_key = 2;
+}
+
+message CreateSessionResponse {
+  string session_id = 1;
+  bool success = 2;
+  string error_message = 3;
 }
 
 // 音訊輸入訊息
@@ -34,7 +49,7 @@ message LocationInput {
 
 // 輸入訊息封包：音訊或影像（或文字）
 message ChatRequest {
-  string session_id = 1;  // Added session identifier
+  string session_id = 1;  // 新增會話識別碼
   optional AudioInput audio = 2;
   optional string text = 3;
   optional LocationInput location = 4;
@@ -48,6 +63,6 @@ message NavigationResponse {
 }
 
 message ChatResponse {
-  string session_id = 1;  // Added session identifier 
+  string session_id = 1;  // 新增會話識別碼 
   NavigationResponse nav = 2;
 }

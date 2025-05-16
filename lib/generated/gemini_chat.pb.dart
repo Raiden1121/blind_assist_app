@@ -16,6 +16,149 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
+/// 新增的會話建立訊息
+class CreateSessionRequest extends $pb.GeneratedMessage {
+  factory CreateSessionRequest({
+    $core.String? geminiApiKey,
+    $core.String? mapsApiKey,
+  }) {
+    final $result = create();
+    if (geminiApiKey != null) {
+      $result.geminiApiKey = geminiApiKey;
+    }
+    if (mapsApiKey != null) {
+      $result.mapsApiKey = mapsApiKey;
+    }
+    return $result;
+  }
+  CreateSessionRequest._() : super();
+  factory CreateSessionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateSessionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSessionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'geminiChat'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'geminiApiKey')
+    ..aOS(2, _omitFieldNames ? '' : 'mapsApiKey')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateSessionRequest clone() => CreateSessionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateSessionRequest copyWith(void Function(CreateSessionRequest) updates) => super.copyWith((message) => updates(message as CreateSessionRequest)) as CreateSessionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateSessionRequest create() => CreateSessionRequest._();
+  CreateSessionRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateSessionRequest> createRepeated() => $pb.PbList<CreateSessionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateSessionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSessionRequest>(create);
+  static CreateSessionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get geminiApiKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set geminiApiKey($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGeminiApiKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGeminiApiKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get mapsApiKey => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mapsApiKey($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMapsApiKey() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMapsApiKey() => $_clearField(2);
+}
+
+class CreateSessionResponse extends $pb.GeneratedMessage {
+  factory CreateSessionResponse({
+    $core.String? sessionId,
+    $core.bool? success,
+    $core.String? errorMessage,
+  }) {
+    final $result = create();
+    if (sessionId != null) {
+      $result.sessionId = sessionId;
+    }
+    if (success != null) {
+      $result.success = success;
+    }
+    if (errorMessage != null) {
+      $result.errorMessage = errorMessage;
+    }
+    return $result;
+  }
+  CreateSessionResponse._() : super();
+  factory CreateSessionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateSessionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSessionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'geminiChat'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..aOB(2, _omitFieldNames ? '' : 'success')
+    ..aOS(3, _omitFieldNames ? '' : 'errorMessage')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateSessionResponse clone() => CreateSessionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateSessionResponse copyWith(void Function(CreateSessionResponse) updates) => super.copyWith((message) => updates(message as CreateSessionResponse)) as CreateSessionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateSessionResponse create() => CreateSessionResponse._();
+  CreateSessionResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateSessionResponse> createRepeated() => $pb.PbList<CreateSessionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateSessionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSessionResponse>(create);
+  static CreateSessionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sessionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sessionId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSessionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSessionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get success => $_getBF(1);
+  @$pb.TagNumber(2)
+  set success($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSuccess() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSuccess() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get errorMessage => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set errorMessage($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasErrorMessage() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearErrorMessage() => $_clearField(3);
+}
+
 /// 音訊輸入訊息
 class AudioInput extends $pb.GeneratedMessage {
   factory AudioInput({
@@ -558,6 +701,10 @@ class GeminiChatApi {
   $pb.RpcClient _client;
   GeminiChatApi(this._client);
 
+  /// 建立新會話，並可選擇性提供 API 金鑰
+  $async.Future<CreateSessionResponse> createSession($pb.ClientContext? ctx, CreateSessionRequest request) =>
+    _client.invoke<CreateSessionResponse>(ctx, 'GeminiChat', 'CreateSession', request, CreateSessionResponse())
+  ;
   /// 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
   $async.Future<ChatResponse> chatStream($pb.ClientContext? ctx, ChatRequest request) =>
     _client.invoke<ChatResponse>(ctx, 'GeminiChat', 'ChatStream', request, ChatResponse())
