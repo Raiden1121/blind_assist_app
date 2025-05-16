@@ -23,4 +23,8 @@ class SpeechPlayer {
     // 開始播放語音
     await _tts.speak(text);
   }
+  /// 停止語音播放
+  Future<void> stop() async {
+    await _tts.stop();
+  }
 }

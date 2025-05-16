@@ -16,15 +16,47 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as imglib;
-import 'package:blind_assist_app/grpc/gemini_live_client.dart';
-import 'package:blind_assist_app/generated/blind_assist.pb.dart';
-import 'package:blind_assist_app/generated/blind_assist.pbgrpc.dart';
+// import 'package:blind_assist_app/grpc/gemini_live_client.dart';
+// import 'package:blind_assist_app/generated/blind_assist.pb.dart';
+// import 'package:blind_assist_app/generated/blind_assist.pbgrpc.dart';
+import 'package:blind_assist_app/grpc/grpc_client.dart';
+import 'package:blind_assist_app/generated/gemini_chat.pbgrpc.dart';
+import 'package:blind_assist_app/generated/gemini_chat.pb.dart';
 import 'package:blind_assist_app/widgets/speech_player.dart';
 import 'package:audioplayers/audioplayers.dart';
+
+// === JPEG 編碼：將 YUV420 轉成 RGB，再用 image 套件編碼 ===
+Uint8List _encodeJpegIsolate(Map<String, dynamic> params) {
+  final int width = params['width'];
+  final int height = params['height'];
+  final Uint8List y = params['y'];
+  final Uint8List u = params['u'];
+  final Uint8List v = params['v'];
+  final int yRowStride = params['yRowStride'];
+  final int uvRowStride = params['uvRowStride'];
+  final int uvPixelStride = params['uvPixelStride'];
+
+  final imglib.Image img = imglib.Image(width: width, height: height);
+
+  for (int row = 0; row < height; row++) {
+    for (int col = 0; col < width; col++) {
+      final int yp = y[row * yRowStride + col];
+      final int up = u[(row >> 1) * uvRowStride + (col >> 1) * uvPixelStride];
+      final int vp = v[(row >> 1) * uvRowStride + (col >> 1) * uvPixelStride];
+      int r = (yp + vp * 1.403 - 179).clamp(0, 255).toInt();
+      int g = (yp - up * 0.344 + 44 - vp * 0.714 + 91).clamp(0, 255).toInt();
+      int b = (yp + up * 1.770 - 227).clamp(0, 255).toInt();
+      img.setPixelRgba(col, row, r, g, b, 255);
+    }
+  }
+
+  return Uint8List.fromList(imglib.encodeJpg(img, quality: 80));
+}
 
 class CameraView extends StatefulWidget {
   const CameraView({Key? key}) : super(key: key);
@@ -38,23 +70,27 @@ class _CameraViewState extends State<CameraView> {
   String _latitude = "";
   String _longitude = "";
   StreamSubscription<Position>? _positionSubscription;
+  String _status = "Idle";
 
   // === 語音與警示音 ===
   final SpeechPlayer _speechPlayer = SpeechPlayer();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   // === gRPC ===
-  late final GeminiLiveClientWrapper _grpcClient;
-  late final StreamController<ClientRequest> _reqCtrl;
-  late final Stream<ServerResponse> _respStream;
-  StreamSubscription<ServerResponse>? _respSubscription;
-  bool _grpcReady = false;
+  late final StreamController<ChatRequest> _reqCtrl;
+  late final Stream<ChatResponse> _respStream;
+  StreamSubscription<ChatResponse>? _respSubscription;
+  // bool _grpcReady = false;
+
+  CameraImage? _lastImage;
+  Timer? _sendTimer;
 
   // === 相機控制 ===
   CameraController? _controller;
+  bool _isStreaming = false;
   bool _isSending = false;
-  int _frameCounter = 0;
-  static const int _processFrameInterval = 5;
+  // int _frameCounter = 0;
+  // static const int _processFrameInterval = 5;
 
   // === 危險提示卡片 ===
   bool _showDanger = false;
@@ -69,18 +105,33 @@ class _CameraViewState extends State<CameraView> {
 
   @override
   void dispose() {
-    // 1. 取消 GPS
+    // ① 先停 Timer，避免它在 dispose 後還呼叫 callback
+    _sendTimer?.cancel();
+
+    // ② 取消定位訂閱
     _positionSubscription?.cancel();
 
-    // 2. 關閉相機
-    _disposeCamera();
-
-    // 3. 關閉 gRPC
-    if (_grpcReady) {
-      _respSubscription?.cancel(); // 取消訂閱
-      _reqCtrl.close(); // 關閉輸出
-      _grpcClient.shutdown(); // await optional
+    // ③ 停影像串流（僅在 _isStreaming 時）
+    if (_controller != null && _isStreaming) {
+      try {
+        _controller!.stopImageStream();
+        _isStreaming = false;
+      } catch (e) {
+        print('❌ stopImageStream error: $e');
+      }
     }
+
+    // ④ 釋放 CameraController
+    try {
+      _controller?.dispose();
+    } catch (e) {
+      print('❌ controller.dispose error: $e');
+    }
+    _controller = null;
+
+    // ⑤ 關閉 gRPC
+    _respSubscription?.cancel();
+    _reqCtrl.close();
 
     super.dispose();
   }
@@ -119,37 +170,24 @@ class _CameraViewState extends State<CameraView> {
 
   // === gRPC 初始化 ===
   Future<void> _initGrpc() async {
-    _grpcClient = GeminiLiveClientWrapper();
-    // 傳入 host & port
-    await _grpcClient.init(
-      host: 'blind-liveapi-grpc-617941879669.asia-east1.run.app',
-      port: 443,
-    );
-
     // 建立 StreamController 並先送 initialConfig
-    _reqCtrl = StreamController<ClientRequest>();
-    _reqCtrl.add(
-      ClientRequest(
-        initialConfig: InitialConfigRequest(
-          modelName: 'models/gemini-2.0-flash-live-001',
-          responseModalities: ['AUDIO', 'TEXT'],
-        ),
-      ),
-    );
-
+    _reqCtrl = StreamController<ChatRequest>();
+    _reqCtrl.add(ChatRequest()..text = 'Speak: Camera open');
     // 雙向串流
-    _respStream = _grpcClient.chatStream(_reqCtrl.stream);
-    _respSubscription = _respStream.listen(
-      _handleResponse,
-      onError: (e) => print('gRPC stream error: $e'),
-    );
+    _respStream = GrpcClient.chatStream(_reqCtrl.stream);
+    _respSubscription = _respStream.listen(_handleResponse,
+        onError: (e) => print('gRPC stream error: $e'),
+        onDone: () => print('gRPC stream closed'));
 
-    _grpcReady = true;
+    // _grpcReady = true;
   }
 
   // === 開啟相機 & 傳影像 ===
   Future<void> _openCamera() async {
     // 1️⃣ 選擇後置鏡頭
+    _isStreaming = false; // ← 新增：重置
+    _lastImage = null;
+
     final cams = await availableCameras();
     final back = cams.where((c) => c.lensDirection == CameraLensDirection.back);
     final chosen = back.first;
@@ -160,35 +198,90 @@ class _CameraViewState extends State<CameraView> {
     await _controller!.initialize();
 
     // 3️⃣ 開始影像串流，每 N 幀傳一次
-    _controller!.startImageStream((img) async {
-      _frameCounter++;
-      if (!_isSending && _frameCounter % _processFrameInterval == 0) {
-        _isSending = true;
-        try {
-          final bytes = _encodeJpeg(img); // 已實作
-          _reqCtrl.add(
-            ClientRequest()
-              ..imagePart = (ImagePart()
-                ..imageData = bytes
-                ..mimeType = 'image/jpeg'),
-          );
-        } catch (e) {
-          print('❌ send frame error: $e');
-        } finally {
-          _isSending = false;
-        }
+    // _controller!.startImageStream((img) async {
+    //   _frameCounter++;
+    //   if (!_isSending && _frameCounter % _processFrameInterval == 0) {
+    //     _isSending = true;
+    //     try {
+    //       final bytes = _encodeJpeg(img); // 已實作
+    //       _reqCtrl.add(ChatRequest()
+    //         ..multiImages = (MultiImageInput()
+    //           ..images.add(ImageInput()
+    //             ..data = bytes
+    //             ..format = 'image/jpeg'
+    //             ..width = img.width
+    //             ..height = img.height)));
+    //     } catch (e) {
+    //       print('❌ send frame error: $e');
+    //     } finally {
+    //       _isSending = false;
+    //     }
+    //   }
+    // });
+
+    // 每五秒傳一次影像
+    _sendTimer?.cancel(); // 先取消舊的
+    _sendTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (!mounted || !_isStreaming || _isSending || _lastImage == null) {
+        if (!mounted) timer.cancel();
+        return;
+      }
+      _isSending = true;
+      try {
+        final img = _lastImage!;
+        final params = {
+          'width': img.width,
+          'height': img.height,
+          'y': img.planes[0].bytes,
+          'u': img.planes[1].bytes,
+          'v': img.planes[2].bytes,
+          'yRowStride': img.planes[0].bytesPerRow,
+          'uvRowStride': img.planes[1].bytesPerRow,
+          'uvPixelStride': img.planes[1].bytesPerPixel,
+        };
+        final bytes = await compute(_encodeJpegIsolate, params);
+        debugPrint("📸 send image: ${bytes.length} bytes");
+        _reqCtrl.add(ChatRequest()
+          ..multiImages = (MultiImageInput()
+            ..images.add(ImageInput()
+              ..data = bytes
+              ..format = 'image/jpeg'
+              ..width = img.width
+              ..height = img.height)));
+      } catch (e) {
+        print('❌ encode/send error: $e');
+      } finally {
+        _isSending = false;
       }
     });
 
-    setState(() {});
-    await _speechPlayer.speak('Camera open. Double-tap to close.');
+    // 然後才啟動攝影機串流
+
+    _controller!.startImageStream((img) {
+      _isStreaming = true;
+      _lastImage = img;
+    });
   }
 
   // === 關閉相機串流 ===
   Future<void> _disposeCamera() async {
+    // ① 先停 Timer，避免它在 dispose 後還呼叫 callback
+    _sendTimer?.cancel();
+
+    // ② 取消定位訂閱
+    _positionSubscription?.cancel();
+
     if (_controller != null) {
-      await _controller!.stopImageStream();
-      await _controller!.dispose();
+      try {
+        _controller!.stopImageStream();
+      } catch (e) {
+        print('❌ stopImageStream error: $e');
+      }
+      try {
+        _controller!.dispose();
+      } catch (e) {
+        print('❌ dispose error: $e');
+      }
       _controller = null;
       setState(() {});
       await _speechPlayer.speak('Camera closed. Thank you.');
@@ -196,58 +289,37 @@ class _CameraViewState extends State<CameraView> {
   }
 
   // === 處理後端回應 ===
-  void _handleResponse(ServerResponse resp) async {
-    if (resp.hasTextPart()) {
-      final msg = resp.textPart.text;
-      if (msg.startsWith('DANGER:')) {
-        final dm = msg.substring(7).trim();
+  void _handleResponse(ChatResponse resp) async {
+    if (resp.hasNav()) {
+      final nav = resp.nav;
+
+      if (nav.alert.isNotEmpty) {
+        final dm = nav.alert.substring(7).trim();
         setState(() {
           _showDanger = true;
           _dangerMessage = dm;
         });
+
+        // 播放警示音效
+        await _speechPlayer.stop();
         await _audioPlayer.play(AssetSource('assets/sounds/alarm.mp3'));
+        await _audioPlayer.onPlayerComplete.first;
         await _speechPlayer.speak(dm);
         await Future.delayed(const Duration(seconds: 3));
         setState(() => _showDanger = false);
       } else {
-        await _speechPlayer.speak(msg);
+        await _speechPlayer.speak(nav.alert);
       }
       return;
     }
-    if (resp.hasGeminiAudioPart()) {
-      await _audioPlayer.play(
-          BytesSource(Uint8List.fromList(resp.geminiAudioPart.audioData)));
-      return;
-    }
-    if (resp.hasErrorPart()) {
-      print('gRPC Error ${resp.errorPart.code}: ${resp.errorPart.message}');
-    }
-  }
-
-  // === JPEG 編碼：將 YUV420 轉成 RGB，再用 image 套件編碼 ===
-  Uint8List _encodeJpeg(CameraImage image) {
-    final width = image.width;
-    final height = image.height;
-    // 建立空白 RGB 影像
-    final img = imglib.Image(width: width, height: height);
-    final yPlane = image.planes[0];
-    final uPlane = image.planes[1];
-    final vPlane = image.planes[2];
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final yp = yPlane.bytes[yPlane.bytesPerRow * y + x];
-        final up = uPlane.bytes[uPlane.bytesPerRow * (y >> 1) + (x >> 1)];
-        final vp = vPlane.bytes[vPlane.bytesPerRow * (y >> 1) + (x >> 1)];
-        // YUV→RGB 轉換
-        int r = (yp + vp * 1.403 - 179).clamp(0, 255).toInt();
-        int g = (yp - up * 0.344 + 44 - vp * 0.714 + 91).clamp(0, 255).toInt();
-        int b = (yp + up * 1.770 - 227).clamp(0, 255).toInt();
-        img.setPixelRgba(x, y, r, g, b, 255);
-      }
-    }
-    // 編碼成 JPEG（品質 80%）
-    return Uint8List.fromList(imglib.encodeJpg(img, quality: 80));
+    // if (resp.hasGeminiAudioPart()) {
+    //   await _audioPlayer.play(
+    //       BytesSource(Uint8List.fromList(resp.geminiAudioPart.audioData)));
+    //   return;
+    // }
+    // if (resp.hasErrorPart()) {
+    //   print('gRPC Error ${resp.errorPart.code}: ${resp.errorPart.message}');
+    // }
   }
 
   // === UI & 手勢：雙擊開關鏡頭 ===
@@ -256,6 +328,8 @@ class _CameraViewState extends State<CameraView> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onDoubleTap: () async {
+        if (!mounted) return;
+
         if (_controller == null) {
           await _openCamera();
         } else {
@@ -315,7 +389,7 @@ class _CameraViewState extends State<CameraView> {
                     const Icon(Icons.navigation, color: Colors.white, size: 18),
                     const SizedBox(width: 4),
                     Text(
-                      'Idle',
+                      _status,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ]),
@@ -338,6 +412,9 @@ class _CameraViewState extends State<CameraView> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                 child: Row(children: [
+                  IconButton(
+                      onPressed: () => setState(() => _showDanger = false),
+                      icon: Icon(Icons.close)),
                   Container(
                     width: 32,
                     height: 32,
