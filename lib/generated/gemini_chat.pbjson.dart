@@ -13,6 +13,41 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use createSessionRequestDescriptor instead')
+const CreateSessionRequest$json = {
+  '1': 'CreateSessionRequest',
+  '2': [
+    {'1': 'gemini_api_key', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'geminiApiKey', '17': true},
+    {'1': 'maps_api_key', '3': 2, '4': 1, '5': 9, '9': 1, '10': 'mapsApiKey', '17': true},
+  ],
+  '8': [
+    {'1': '_gemini_api_key'},
+    {'1': '_maps_api_key'},
+  ],
+};
+
+/// Descriptor for `CreateSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createSessionRequestDescriptor = $convert.base64Decode(
+    'ChRDcmVhdGVTZXNzaW9uUmVxdWVzdBIpCg5nZW1pbmlfYXBpX2tleRgBIAEoCUgAUgxnZW1pbm'
+    'lBcGlLZXmIAQESJQoMbWFwc19hcGlfa2V5GAIgASgJSAFSCm1hcHNBcGlLZXmIAQFCEQoPX2dl'
+    'bWluaV9hcGlfa2V5Qg8KDV9tYXBzX2FwaV9rZXk=');
+
+@$core.Deprecated('Use createSessionResponseDescriptor instead')
+const CreateSessionResponse$json = {
+  '1': 'CreateSessionResponse',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'success', '3': 2, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'error_message', '3': 3, '4': 1, '5': 9, '10': 'errorMessage'},
+  ],
+};
+
+/// Descriptor for `CreateSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createSessionResponseDescriptor = $convert.base64Decode(
+    'ChVDcmVhdGVTZXNzaW9uUmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbklkEh'
+    'gKB3N1Y2Nlc3MYAiABKAhSB3N1Y2Nlc3MSIwoNZXJyb3JfbWVzc2FnZRgDIAEoCVIMZXJyb3JN'
+    'ZXNzYWdl');
+
 @$core.Deprecated('Use audioInputDescriptor instead')
 const AudioInput$json = {
   '1': 'AudioInput',
@@ -130,12 +165,15 @@ final $typed_data.Uint8List chatResponseDescriptor = $convert.base64Decode(
 const $core.Map<$core.String, $core.dynamic> GeminiChatServiceBase$json = {
   '1': 'GeminiChat',
   '2': [
+    {'1': 'CreateSession', '2': '.geminiChat.CreateSessionRequest', '3': '.geminiChat.CreateSessionResponse'},
     {'1': 'ChatStream', '2': '.geminiChat.ChatRequest', '3': '.geminiChat.ChatResponse', '5': true, '6': true},
   ],
 };
 
 @$core.Deprecated('Use geminiChatServiceDescriptor instead')
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> GeminiChatServiceBase$messageJson = {
+  '.geminiChat.CreateSessionRequest': CreateSessionRequest$json,
+  '.geminiChat.CreateSessionResponse': CreateSessionResponse$json,
   '.geminiChat.ChatRequest': ChatRequest$json,
   '.geminiChat.AudioInput': AudioInput$json,
   '.geminiChat.LocationInput': LocationInput$json,
@@ -147,6 +185,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> GeminiChat
 
 /// Descriptor for `GeminiChat`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List geminiChatServiceDescriptor = $convert.base64Decode(
-    'CgpHZW1pbmlDaGF0EkMKCkNoYXRTdHJlYW0SFy5nZW1pbmlDaGF0LkNoYXRSZXF1ZXN0GhguZ2'
-    'VtaW5pQ2hhdC5DaGF0UmVzcG9uc2UoATAB');
+    'CgpHZW1pbmlDaGF0ElQKDUNyZWF0ZVNlc3Npb24SIC5nZW1pbmlDaGF0LkNyZWF0ZVNlc3Npb2'
+    '5SZXF1ZXN0GiEuZ2VtaW5pQ2hhdC5DcmVhdGVTZXNzaW9uUmVzcG9uc2USQwoKQ2hhdFN0cmVh'
+    'bRIXLmdlbWluaUNoYXQuQ2hhdFJlcXVlc3QaGC5nZW1pbmlDaGF0LkNoYXRSZXNwb25zZSgBMA'
+    'E=');
 

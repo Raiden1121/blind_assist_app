@@ -35,6 +35,11 @@ class GeminiChatStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.CreateSession = channel.unary_unary(
+                '/geminiChat.GeminiChat/CreateSession',
+                request_serializer=gemini__chat__pb2.CreateSessionRequest.SerializeToString,
+                response_deserializer=gemini__chat__pb2.CreateSessionResponse.FromString,
+                _registered_method=True)
         self.ChatStream = channel.stream_stream(
                 '/geminiChat.GeminiChat/ChatStream',
                 request_serializer=gemini__chat__pb2.ChatRequest.SerializeToString,
@@ -46,6 +51,13 @@ class GeminiChatServicer(object):
     """定義 Gemini Chat 服務
     """
 
+    def CreateSession(self, request, context):
+        """建立新會話，並可選擇性提供 API 金鑰
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ChatStream(self, request_iterator, context):
         """雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
         """
@@ -56,6 +68,11 @@ class GeminiChatServicer(object):
 
 def add_GeminiChatServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'CreateSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSession,
+                    request_deserializer=gemini__chat__pb2.CreateSessionRequest.FromString,
+                    response_serializer=gemini__chat__pb2.CreateSessionResponse.SerializeToString,
+            ),
             'ChatStream': grpc.stream_stream_rpc_method_handler(
                     servicer.ChatStream,
                     request_deserializer=gemini__chat__pb2.ChatRequest.FromString,
@@ -72,6 +89,33 @@ def add_GeminiChatServicer_to_server(servicer, server):
 class GeminiChat(object):
     """定義 Gemini Chat 服務
     """
+
+    @staticmethod
+    def CreateSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/geminiChat.GeminiChat/CreateSession',
+            gemini__chat__pb2.CreateSessionRequest.SerializeToString,
+            gemini__chat__pb2.CreateSessionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def ChatStream(request_iterator,

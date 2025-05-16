@@ -21,10 +21,12 @@ import 'gemini_chat.pbjson.dart';
 export 'gemini_chat.pb.dart';
 
 abstract class GeminiChatServiceBase extends $pb.GeneratedService {
+  $async.Future<$0.CreateSessionResponse> createSession($pb.ServerContext ctx, $0.CreateSessionRequest request);
   $async.Future<$0.ChatResponse> chatStream($pb.ServerContext ctx, $0.ChatRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
+      case 'CreateSession': return $0.CreateSessionRequest();
       case 'ChatStream': return $0.ChatRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -32,6 +34,7 @@ abstract class GeminiChatServiceBase extends $pb.GeneratedService {
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
+      case 'CreateSession': return this.createSession(ctx, request as $0.CreateSessionRequest);
       case 'ChatStream': return this.chatStream(ctx, request as $0.ChatRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }

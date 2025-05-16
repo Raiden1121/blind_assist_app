@@ -6,6 +6,7 @@ import os
 from typing import AsyncIterable, Iterable, Dict
 import wave
 import io
+import uuid
 
 import grpc
 import gemini_chat_pb2
@@ -72,6 +73,37 @@ def transcribe_audio(audio_bytes):
 
 class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
 
+    async def CreateSession(
+        self, request: gemini_chat_pb2.CreateSessionRequest, 
+        context) -> gemini_chat_pb2.CreateSessionResponse:
+        try:
+            # Generate a unique session ID
+            session_id = str(uuid.uuid4())
+            
+            # Create session state with provided API keys
+            session_state = SessionState(
+                session_id=session_id,
+                gemini_api_key=request.gemini_api_key if request.HasField("gemini_api_key") else None,
+                maps_api_key=request.maps_api_key if request.HasField("maps_api_key") else None
+            )
+            
+            # Store session state
+            active_sessions[session_id] = session_state
+            
+            logging.info(f"Created new session: {session_id}")
+            return gemini_chat_pb2.CreateSessionResponse(
+                session_id=session_id,
+                success=True
+            )
+            
+        except Exception as e:
+            logging.error(f"Error creating session: {e}")
+            return gemini_chat_pb2.CreateSessionResponse(
+                session_id="",
+                success=False,
+                error_message=str(e)
+            )
+
     async def ChatStream(
             self, request_iterator: AsyncIterable[gemini_chat_pb2.ChatRequest],
             context) -> AsyncIterable[gemini_chat_pb2.ChatResponse]:
@@ -83,7 +115,16 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                     logging.error("Received request without session_id")
                     continue
                 
-                session_state = get_or_create_session(request.session_id)
+                # Get existing session or return error
+                session_state = active_sessions.get(request.session_id)
+                if not session_state:
+                    logging.error(f"Invalid session ID: {request.session_id}")
+                    response = gemini_chat_pb2.ChatResponse()
+                    response.session_id = request.session_id
+                    response.nav.nav_description = "Error: Invalid session ID"
+                    yield response
+                    continue
+                
                 logging.info(f"Processing request for session {request.session_id}")
                 
                 if (request.HasField("location") and request.location.lat and request.location.lng):
