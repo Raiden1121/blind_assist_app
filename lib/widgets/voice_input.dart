@@ -4,6 +4,7 @@ import 'dart:typed_data';
 // import 'package:blind_assist_app/generated/gemini_chat.pbjson.dart';
 import 'package:blind_assist_app/grpc/grpc_client.dart';
 import 'package:blind_assist_app/services/settings_service.dart';
+import 'package:blind_assist_app/widgets/speech_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:location/location.dart' as loc;
@@ -176,6 +177,7 @@ class _VoiceInputState extends State<VoiceInput> {
       _sendLocationData();
     });
 
+    _flutterTts.stop();
     try {
       await _recorder.startRecorder(
         toStream: _audioStreamController!.sink,
