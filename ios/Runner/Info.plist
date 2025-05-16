@@ -5,13 +5,13 @@
 <dict>
   <!-- 使用者權限說明 -->
   <key>NSCameraUsageDescription</key>
-  <string>需要使用相機來辨識周遭環境</string>
+  <string>GeminEye requires access to the camera to recognize your surrounding environment.</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>需要使用麥克風來接收語音指令</string>
+  <string>GeminEye requires access to the microphone to receive voice commands.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
-  <string>需要使用定位來進行導航輔助</string>
+  <string>GeminEye requires access to your location to provide navigation assistance.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>需要使用語音辨識來協助辨識使用者的指令</string>
+  <string>GeminEye requires speech recognition to interpret the user's voice commands.</string>
 
   <!-- URL Scheme for Google Sign-In -->
   <key>CFBundleURLTypes</key>
