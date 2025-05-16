@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:grpc/grpc.dart';
 import 'package:blind_assist_app/generated/gemini_chat.pbgrpc.dart';
+import 'package:uuid/uuid.dart';
 
 
 class GrpcClient {
   static late ClientChannel channel;
   static late GeminiChatClient stub;
-
-  static String host = '10.0.2.2'; // gRPC 伺服器的主機名稱或 IP 地址
+  static String sessionId = const Uuid().v4(); // Session ID for gRPC communication with UUID
+  static String host = '192.168.12.39'; // gRPC 伺服器的主機名稱或 IP 地址
   static int port = 50051; // gRPC 伺服器的埠號
  /// 在 App 啟動時呼叫此方法完成初始化
   static Future<void> init() async {
@@ -33,6 +34,11 @@ class GrpcClient {
   }
 
   static Stream<ChatResponse> chatStream(Stream<ChatRequest> requests) {
+    // Add sessionId to each request
+    requests = requests.map((request) {
+      request.sessionId = sessionId;
+      return request;
+    });
     return stub.chatStream(requests);
   }
 
@@ -68,6 +74,7 @@ class GrpcClient {
 
     // 發送測試訊息
     final req = ChatRequest();
+    req.sessionId = 'test_session_id'+sessionId;
     req.text = 'Hello,  gRPC!';
     req.location = (LocationInput()
       ..lat = 25.0478

@@ -2,10 +2,10 @@ from google.genai import types
 
 # tool_schemas.py －－ 交給 Gemini 的 JSON‑Schema
 
-geocode_decl = types.FunctionDeclaration(
-    name="geocode_place",
-    description="Convert a address or place name to lat,lng. if the function fail or query is not a well-known location or explicit address, you should use search_places to get a list of possible matches first",
-    parameters={
+geocode_decl = {
+    "name": "geocode_place",
+    "description": "Convert a address or place name to lat,lng. if the function fail or query is not a well-known location or explicit address, you should use search_places to get a list of possible matches first",
+    "parameters": {
         "type": "object",
         "properties": {
             "query": {
@@ -15,7 +15,8 @@ geocode_decl = types.FunctionDeclaration(
         },
         "required": ["query"]
     }
-)
+}
+
 
 # Add this alongside your existing declarations
 reverse_geocode_decl = {
@@ -37,10 +38,10 @@ reverse_geocode_decl = {
     }
 }
 
-route_decl = types.FunctionDeclaration(
-    name="compute_route",
-    description="Compute a route between two locations with optional transportation mode",
-    parameters={
+route_decl =  {
+    "name":"compute_route",
+    "description":"Compute a route between two locations with optional transportation mode",
+    "parameters":{
         "type": "object",
         "properties": {
             "origin": {
@@ -59,7 +60,7 @@ route_decl = types.FunctionDeclaration(
         },
         "required": ["origin", "destination"]
     }
-)
+}
 
 # Add to your existing schemas
 search_places_decl = {
@@ -89,10 +90,10 @@ search_places_decl = {
     }
 }
 
-place_details_decl = types.FunctionDeclaration(
-    name="place_details",
-    description="Get detailed information about a place including opening hours, contact info, and reviews",
-    parameters={
+place_details_decl = {
+    "name":"place_details",
+    "description":"Get detailed information about a place including opening hours, contact info, and reviews",
+    "parameters":{
         "type": "object",
         "properties": {
             "place_id": {
@@ -102,48 +103,53 @@ place_details_decl = types.FunctionDeclaration(
         },
         "required": ["place_id"]
     }
-)
+}
 
-start_navigation_decl = types.FunctionDeclaration(
-    name="start_navigation",
-    description="Start navigation with the currently computed route",
-    parameters={
+
+start_navigation_decl = {
+    "name":"start_navigation",
+    "description":"Start navigation with the currently computed route",
+    "parameters":{
         "type": "object",
         "properties": {},
         "required": []
     }
-)
+}
 
-end_navigation_decl = types.FunctionDeclaration(
-    name="end_navigation",
-    description="End the current navigation session and reset navigation state",
-    parameters={
+
+end_navigation_decl = {
+    "name": "end_navigation",
+    "description": "End the current navigation session and reset navigation state",
+    "parameters": {
         "type": "object",
         "properties": {},
         "required": []
     }
-)
+}
 
 
-get_current_step_decl = types.FunctionDeclaration(
-    name="get_current_step",
-    description="Get the current navigation step that the user is on",
-    parameters={
+
+get_current_step_decl = {
+    "name":"get_current_step",
+    "description":"Get the current navigation step that the user is on",
+    "parameters":{
         "type": "object",
         "properties": {},
         "required": []
     }
-)
+}
 
-get_current_location_decl = types.FunctionDeclaration(
-    name="get_current_location",
-    description="Get the user's current geographic location",
-    parameters={
+
+get_current_location_decl = {
+    "name":"get_current_location",
+    "description":"Get the user's current geographic location",
+    "parameters":{
         "type": "object",
         "properties": {},
         "required": []
     }
-)
+}
+
 
 # ...existing code...
 restart_navigation_decl = {
@@ -161,7 +167,7 @@ restart_navigation_decl = {
     }
 }
 
-get_full_route_decl = {
+get_full_route_decl ={
     "name": "get_full_route",
     "description": "Gets the full route information for the current navigation session",
     "parameters": {

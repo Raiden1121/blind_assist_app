@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11gemini_chat.proto\x12\ngeminiChat\"B\n\nAudioInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\x16\n\x0esample_rate_hz\x18\x03 \x01(\x05\"I\n\nImageInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\"9\n\x0fMultiImageInput\x12&\n\x06images\x18\x01 \x03(\x0b\x32\x16.geminiChat.ImageInput\")\n\rLocationInput\x12\x0b\n\x03lat\x18\x01 \x01(\x02\x12\x0b\n\x03lng\x18\x02 \x01(\x02\"\xe7\x01\n\x0b\x43hatRequest\x12*\n\x05\x61udio\x18\x01 \x01(\x0b\x32\x16.geminiChat.AudioInputH\x00\x88\x01\x01\x12\x11\n\x04text\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x30\n\x08location\x18\x03 \x01(\x0b\x32\x19.geminiChat.LocationInputH\x02\x88\x01\x01\x12\x36\n\x0cmulti_images\x18\x04 \x01(\x0b\x32\x1b.geminiChat.MultiImageInputH\x03\x88\x01\x01\x42\x08\n\x06_audioB\x07\n\x05_textB\x0b\n\t_locationB\x0f\n\r_multi_images\"P\n\x12NavigationResponse\x12\r\n\x05\x61lert\x18\x01 \x01(\t\x12\x12\n\nnav_status\x18\x02 \x01(\x08\x12\x17\n\x0fnav_description\x18\x03 \x01(\t\";\n\x0c\x43hatResponse\x12+\n\x03nav\x18\x01 \x01(\x0b\x32\x1e.geminiChat.NavigationResponse2Q\n\nGeminiChat\x12\x43\n\nChatStream\x12\x17.geminiChat.ChatRequest\x1a\x18.geminiChat.ChatResponse(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11gemini_chat.proto\x12\ngeminiChat\"B\n\nAudioInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\x16\n\x0esample_rate_hz\x18\x03 \x01(\x05\"I\n\nImageInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\"9\n\x0fMultiImageInput\x12&\n\x06images\x18\x01 \x03(\x0b\x32\x16.geminiChat.ImageInput\")\n\rLocationInput\x12\x0b\n\x03lat\x18\x01 \x01(\x02\x12\x0b\n\x03lng\x18\x02 \x01(\x02\"\xfb\x01\n\x0b\x43hatRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12*\n\x05\x61udio\x18\x02 \x01(\x0b\x32\x16.geminiChat.AudioInputH\x00\x88\x01\x01\x12\x11\n\x04text\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x30\n\x08location\x18\x04 \x01(\x0b\x32\x19.geminiChat.LocationInputH\x02\x88\x01\x01\x12\x36\n\x0cmulti_images\x18\x05 \x01(\x0b\x32\x1b.geminiChat.MultiImageInputH\x03\x88\x01\x01\x42\x08\n\x06_audioB\x07\n\x05_textB\x0b\n\t_locationB\x0f\n\r_multi_images\"P\n\x12NavigationResponse\x12\r\n\x05\x61lert\x18\x01 \x01(\t\x12\x12\n\nnav_status\x18\x02 \x01(\x08\x12\x17\n\x0fnav_description\x18\x03 \x01(\t\"O\n\x0c\x43hatResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12+\n\x03nav\x18\x02 \x01(\x0b\x32\x1e.geminiChat.NavigationResponse2Q\n\nGeminiChat\x12\x43\n\nChatStream\x12\x17.geminiChat.ChatRequest\x1a\x18.geminiChat.ChatResponse(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,11 +40,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LOCATIONINPUT']._serialized_start=235
   _globals['_LOCATIONINPUT']._serialized_end=276
   _globals['_CHATREQUEST']._serialized_start=279
-  _globals['_CHATREQUEST']._serialized_end=510
-  _globals['_NAVIGATIONRESPONSE']._serialized_start=512
-  _globals['_NAVIGATIONRESPONSE']._serialized_end=592
-  _globals['_CHATRESPONSE']._serialized_start=594
-  _globals['_CHATRESPONSE']._serialized_end=653
-  _globals['_GEMINICHAT']._serialized_start=655
-  _globals['_GEMINICHAT']._serialized_end=736
+  _globals['_CHATREQUEST']._serialized_end=530
+  _globals['_NAVIGATIONRESPONSE']._serialized_start=532
+  _globals['_NAVIGATIONRESPONSE']._serialized_end=612
+  _globals['_CHATRESPONSE']._serialized_start=614
+  _globals['_CHATRESPONSE']._serialized_end=693
+  _globals['_GEMINICHAT']._serialized_start=695
+  _globals['_GEMINICHAT']._serialized_end=776
 # @@protoc_insertion_point(module_scope)

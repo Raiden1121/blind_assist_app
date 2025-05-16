@@ -9,6 +9,7 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
+import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
@@ -150,7 +151,6 @@ class ImageInput extends $pb.GeneratedMessage {
   static ImageInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImageInput>(create);
   static ImageInput? _defaultInstance;
 
-  /// 原始影像二進位資料 (例如 JPEG/PNG)
   @$pb.TagNumber(1)
   $core.List<$core.int> get data => $_getN(0);
   @$pb.TagNumber(1)
@@ -160,7 +160,6 @@ class ImageInput extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearData() => $_clearField(1);
 
-  /// 影像格式 (e.g. "jpeg", "png")
   @$pb.TagNumber(2)
   $core.String get format => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -300,12 +299,16 @@ class LocationInput extends $pb.GeneratedMessage {
 /// 輸入訊息封包：音訊或影像（或文字）
 class ChatRequest extends $pb.GeneratedMessage {
   factory ChatRequest({
+    $core.String? sessionId,
     AudioInput? audio,
     $core.String? text,
     LocationInput? location,
     MultiImageInput? multiImages,
   }) {
     final $result = create();
+    if (sessionId != null) {
+      $result.sessionId = sessionId;
+    }
     if (audio != null) {
       $result.audio = audio;
     }
@@ -325,10 +328,11 @@ class ChatRequest extends $pb.GeneratedMessage {
   factory ChatRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChatRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'geminiChat'), createEmptyInstance: create)
-    ..aOM<AudioInput>(1, _omitFieldNames ? '' : 'audio', subBuilder: AudioInput.create)
-    ..aOS(2, _omitFieldNames ? '' : 'text')
-    ..aOM<LocationInput>(3, _omitFieldNames ? '' : 'location', subBuilder: LocationInput.create)
-    ..aOM<MultiImageInput>(4, _omitFieldNames ? '' : 'multiImages', subBuilder: MultiImageInput.create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..aOM<AudioInput>(2, _omitFieldNames ? '' : 'audio', subBuilder: AudioInput.create)
+    ..aOS(3, _omitFieldNames ? '' : 'text')
+    ..aOM<LocationInput>(4, _omitFieldNames ? '' : 'location', subBuilder: LocationInput.create)
+    ..aOM<MultiImageInput>(5, _omitFieldNames ? '' : 'multiImages', subBuilder: MultiImageInput.create)
     ..hasRequiredFields = false
   ;
 
@@ -354,46 +358,55 @@ class ChatRequest extends $pb.GeneratedMessage {
   static ChatRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  AudioInput get audio => $_getN(0);
+  $core.String get sessionId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set audio(AudioInput v) { $_setField(1, v); }
+  set sessionId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasAudio() => $_has(0);
+  $core.bool hasSessionId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearAudio() => $_clearField(1);
-  @$pb.TagNumber(1)
-  AudioInput ensureAudio() => $_ensure(0);
+  void clearSessionId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get text => $_getSZ(1);
+  AudioInput get audio => $_getN(1);
   @$pb.TagNumber(2)
-  set text($core.String v) { $_setString(1, v); }
+  set audio(AudioInput v) { $_setField(2, v); }
   @$pb.TagNumber(2)
-  $core.bool hasText() => $_has(1);
+  $core.bool hasAudio() => $_has(1);
   @$pb.TagNumber(2)
-  void clearText() => $_clearField(2);
+  void clearAudio() => $_clearField(2);
+  @$pb.TagNumber(2)
+  AudioInput ensureAudio() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  LocationInput get location => $_getN(2);
+  $core.String get text => $_getSZ(2);
   @$pb.TagNumber(3)
-  set location(LocationInput v) { $_setField(3, v); }
+  set text($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
-  $core.bool hasLocation() => $_has(2);
+  $core.bool hasText() => $_has(2);
   @$pb.TagNumber(3)
-  void clearLocation() => $_clearField(3);
-  @$pb.TagNumber(3)
-  LocationInput ensureLocation() => $_ensure(2);
+  void clearText() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  MultiImageInput get multiImages => $_getN(3);
+  LocationInput get location => $_getN(3);
   @$pb.TagNumber(4)
-  set multiImages(MultiImageInput v) { $_setField(4, v); }
+  set location(LocationInput v) { $_setField(4, v); }
   @$pb.TagNumber(4)
-  $core.bool hasMultiImages() => $_has(3);
+  $core.bool hasLocation() => $_has(3);
   @$pb.TagNumber(4)
-  void clearMultiImages() => $_clearField(4);
+  void clearLocation() => $_clearField(4);
   @$pb.TagNumber(4)
-  MultiImageInput ensureMultiImages() => $_ensure(3);
+  LocationInput ensureLocation() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  MultiImageInput get multiImages => $_getN(4);
+  @$pb.TagNumber(5)
+  set multiImages(MultiImageInput v) { $_setField(5, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasMultiImages() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMultiImages() => $_clearField(5);
+  @$pb.TagNumber(5)
+  MultiImageInput ensureMultiImages() => $_ensure(4);
 }
 
 class NavigationResponse extends $pb.GeneratedMessage {
@@ -476,9 +489,13 @@ class NavigationResponse extends $pb.GeneratedMessage {
 
 class ChatResponse extends $pb.GeneratedMessage {
   factory ChatResponse({
+    $core.String? sessionId,
     NavigationResponse? nav,
   }) {
     final $result = create();
+    if (sessionId != null) {
+      $result.sessionId = sessionId;
+    }
     if (nav != null) {
       $result.nav = nav;
     }
@@ -489,7 +506,8 @@ class ChatResponse extends $pb.GeneratedMessage {
   factory ChatResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ChatResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'geminiChat'), createEmptyInstance: create)
-    ..aOM<NavigationResponse>(1, _omitFieldNames ? '' : 'nav', subBuilder: NavigationResponse.create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..aOM<NavigationResponse>(2, _omitFieldNames ? '' : 'nav', subBuilder: NavigationResponse.create)
     ..hasRequiredFields = false
   ;
 
@@ -515,15 +533,35 @@ class ChatResponse extends $pb.GeneratedMessage {
   static ChatResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  NavigationResponse get nav => $_getN(0);
+  $core.String get sessionId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set nav(NavigationResponse v) { $_setField(1, v); }
+  set sessionId($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
-  $core.bool hasNav() => $_has(0);
+  $core.bool hasSessionId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearNav() => $_clearField(1);
-  @$pb.TagNumber(1)
-  NavigationResponse ensureNav() => $_ensure(0);
+  void clearSessionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  NavigationResponse get nav => $_getN(1);
+  @$pb.TagNumber(2)
+  set nav(NavigationResponse v) { $_setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNav() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNav() => $_clearField(2);
+  @$pb.TagNumber(2)
+  NavigationResponse ensureNav() => $_ensure(1);
+}
+
+/// 定義 Gemini Chat 服務
+class GeminiChatApi {
+  $pb.RpcClient _client;
+  GeminiChatApi(this._client);
+
+  /// 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
+  $async.Future<ChatResponse> chatStream($pb.ClientContext? ctx, ChatRequest request) =>
+    _client.invoke<ChatResponse>(ctx, 'GeminiChat', 'ChatStream', request, ChatResponse())
+  ;
 }
 
 

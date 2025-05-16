@@ -32,3 +32,4 @@ pubspec.lock
 python/server/
 
 map_image.jpg
+*.log

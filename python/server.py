@@ -3,7 +3,7 @@ import logging
 import math
 import time
 import os
-from typing import AsyncIterable, Iterable
+from typing import AsyncIterable, Iterable, Dict
 import wave
 import io
 
@@ -11,24 +11,26 @@ import grpc
 import gemini_chat_pb2
 import gemini_chat_pb2_grpc
 from dotenv import load_dotenv
-
 import speech_recognition as sr
-
 import httpx
-from google import genai  # v1.x import path
-from google.genai import types  # FunctionCall / Content
+from google import genai
+from google.genai import types
 import navigator
+from navigator import SessionState
 
 load_dotenv()
 
 GOOGLE_SPEECH_API_KEY = os.getenv("GOOGLE_SPEECH_API_KEY")
 logging.basicConfig(level=logging.INFO)
 
-images_alert_prompt = """
-Analyze these walking-scene images for hazards or obstacles and for each image output a brief alert with the risk and recommended action. 
-If there are hazards or obstacles or red light, please output the alert in the following format: Alert: <alert>
-If there are no hazards or obstacles, please output: No alert.
-"""
+# Store active sessions
+active_sessions: Dict[str, SessionState] = {}
+
+def get_or_create_session(session_id: str) -> SessionState:
+    if session_id not in active_sessions:
+        active_sessions[session_id] = SessionState(session_id=session_id)
+        logging.info(f"Created new session: {session_id}")
+    return active_sessions[session_id]
 
 def transcribe_audio(audio_bytes):
     recognizer = sr.Recognizer()
@@ -73,70 +75,75 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
     async def ChatStream(
             self, request_iterator: AsyncIterable[gemini_chat_pb2.ChatRequest],
             context) -> AsyncIterable[gemini_chat_pb2.ChatResponse]:
-        """雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
-        """
-        logging.info("ChatStream called")
         
-        text_prompt = ""
-        audio_text = ""
-        llm_resp = None
-        steps = None
-        alert_resp = None
-        
-        # Process incoming requests
-        async for request in request_iterator:
-            logging.info(f"Received request: ")
-            
-            if (request.HasField("location") and request.location.lat and request.location.lng):
-                lat = request.location.lat
-                lng = request.location.lng
-                logging.info(f"Received location: {lat}, {lng}")
+        session_state = None
+        try:
+            async for request in request_iterator:
+                if not request.session_id:
+                    logging.error("Received request without session_id")
+                    continue
                 
-                navigator.set_current_location({"lat": lat, "lng": lng})
-        
-            if (request.HasField("text") and request.text): # debug
-                text_prompt = request.text
-                logging.info(f"Received text: {text_prompt}")
-                llm_resp = await navigator.chatbot_conversation(text_prompt)
-            elif (request.HasField("audio") and request.audio.data):
-                audio_text = await asyncio.to_thread(
-                    transcribe_audio, request.audio.data)
+                session_state = get_or_create_session(request.session_id)
+                logging.info(f"Processing request for session {request.session_id}")
                 
-                if audio_text == "Cannot understand audio":
-                    llm_resp = "Please repeat your request."
-                    logging.warning("Audio transcription failed: Cannot understand audio")
-                elif audio_text:
-                    llm_resp = await navigator.chatbot_conversation(audio_text)
-                    logging.info(f"Transcribed audio text: {audio_text}")
-                else:
-                    logging.error("Failed to transcribe audio")
+                if (request.HasField("location") and request.location.lat and request.location.lng):
+                    lat = request.location.lat
+                    lng = request.location.lng
+                    logging.info(f"Session {session_state.session_id}: Received location: {lat}, {lng}")
+                    navigator.set_current_location(session_state, {"lat": lat, "lng": lng})
             
-            if request.HasField("multi_images") and len(request.multi_images.images) > 0:
-                multi_images = []
-                for img in request.multi_images.images:
-                    if img.data:
-                        multi_images.append(img.data)
-            
-                logging.info(f"Received multiple images: {len(multi_images)} images")
-            
-                alert_resp = await navigator.chatbot_conversation(images_alert_prompt, multi_images)
+                text_prompt = ""
+                audio_text = ""
+                llm_resp = None
+                alert_resp = None
+                
+                if request.HasField("text"):
+                    text_prompt = request.text
+                    logging.info(f"Session {session_state.session_id}: Received text: {text_prompt}")
+                    llm_resp = await navigator.chatbot_conversation(session_state, text_prompt)
+                elif request.HasField("audio") and request.audio.data:
+                    audio_text = await asyncio.to_thread(
+                        transcribe_audio, request.audio.data)
+                    
+                    if audio_text == "Cannot understand audio":
+                        llm_resp = "Please repeat your request."
+                        logging.warning(f"Session {session_state.session_id}: Cannot understand audio")
+                    elif audio_text:
+                        llm_resp = await navigator.chatbot_conversation(session_state, audio_text)
+                        logging.info(f"Session {session_state.session_id}: Transcribed audio: {audio_text}")
+                    else:
+                        logging.error(f"Session {session_state.session_id}: Failed to transcribe audio")
+                
+                if request.HasField("multi_images") and len(request.multi_images.images) > 0:
+                    multi_images = []
+                    for img in request.multi_images.images:
+                        if img.data:
+                            multi_images.append(img.data)
+                
+                    logging.info(f"Session {session_state.session_id}: Processing {len(multi_images)} images")
+                    alert_resp = await navigator.chatbot_conversation(session_state, 
+                        navigator.images_alert_prompt, multi_images)
 
-            # Here you would typically process the request and generate a response
-            response = gemini_chat_pb2.ChatResponse()
-            if alert_resp:
-                response.nav.alert = alert_resp
-            else:
-                response.nav.alert = "No alert generated."
-            if (steps is not None):
-                response.nav.nav_status = True
-                            
-            response.nav.nav_status = False
-            if llm_resp:
-                response.nav.nav_description = llm_resp
-            else:
-                response.nav.nav_description = ""
-            
-            yield response
+                response = gemini_chat_pb2.ChatResponse()
+                response.session_id = request.session_id
+                if alert_resp:
+                    response.nav.alert = alert_resp
+                else:
+                    response.nav.alert = "No alert generated."
+                
+                response.nav.nav_status = session_state.status == "Navigating"
+                if llm_resp:
+                    response.nav.nav_description = llm_resp
+                else:
+                    response.nav.nav_description = ""
+                
+                yield response
+
+        except Exception as e:
+            logging.error(f"Error in ChatStream: {e}")
+            if session_state:
+                logging.error(f"Error occurred for session {session_state.session_id}")
+            raise
 
 async def serve() -> None:
     try:

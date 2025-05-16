@@ -6,9 +6,6 @@ package geminiChat;
 service GeminiChat {
   // 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
   rpc ChatStream(stream ChatRequest) returns (stream ChatResponse);
-  
-  // 單次請求/回應也可保留
-  // rpc ChatOnce(ChatRequest) returns (ChatResponse);
 }
 
 // 音訊輸入訊息
@@ -20,9 +17,7 @@ message AudioInput {
 
 // 影像輸入訊息
 message ImageInput {
-  // 原始影像二進位資料 (例如 JPEG/PNG)
   bytes data = 1;
-  // 影像格式 (e.g. "jpeg", "png")
   string format = 2;
   int32 width = 3;
   int32 height = 4;
@@ -39,10 +34,11 @@ message LocationInput {
 
 // 輸入訊息封包：音訊或影像（或文字）
 message ChatRequest {
-  optional AudioInput audio = 1;
-  optional string text = 2;
-  optional LocationInput location = 3;
-  optional MultiImageInput multi_images = 4;
+  string session_id = 1;  // Added session identifier
+  optional AudioInput audio = 2;
+  optional string text = 3;
+  optional LocationInput location = 4;
+  optional MultiImageInput multi_images = 5;
 }
 
 message NavigationResponse {
@@ -52,8 +48,6 @@ message NavigationResponse {
 }
 
 message ChatResponse {
-  NavigationResponse nav = 1;
-  // string request_id = 4;
+  string session_id = 1;  // Added session identifier 
+  NavigationResponse nav = 2;
 }
-
-

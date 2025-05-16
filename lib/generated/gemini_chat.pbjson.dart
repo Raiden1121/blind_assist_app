@@ -74,10 +74,11 @@ final $typed_data.Uint8List locationInputDescriptor = $convert.base64Decode(
 const ChatRequest$json = {
   '1': 'ChatRequest',
   '2': [
-    {'1': 'audio', '3': 1, '4': 1, '5': 11, '6': '.geminiChat.AudioInput', '9': 0, '10': 'audio', '17': true},
-    {'1': 'text', '3': 2, '4': 1, '5': 9, '9': 1, '10': 'text', '17': true},
-    {'1': 'location', '3': 3, '4': 1, '5': 11, '6': '.geminiChat.LocationInput', '9': 2, '10': 'location', '17': true},
-    {'1': 'multi_images', '3': 4, '4': 1, '5': 11, '6': '.geminiChat.MultiImageInput', '9': 3, '10': 'multiImages', '17': true},
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'audio', '3': 2, '4': 1, '5': 11, '6': '.geminiChat.AudioInput', '9': 0, '10': 'audio', '17': true},
+    {'1': 'text', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'text', '17': true},
+    {'1': 'location', '3': 4, '4': 1, '5': 11, '6': '.geminiChat.LocationInput', '9': 2, '10': 'location', '17': true},
+    {'1': 'multi_images', '3': 5, '4': 1, '5': 11, '6': '.geminiChat.MultiImageInput', '9': 3, '10': 'multiImages', '17': true},
   ],
   '8': [
     {'1': '_audio'},
@@ -89,11 +90,12 @@ const ChatRequest$json = {
 
 /// Descriptor for `ChatRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List chatRequestDescriptor = $convert.base64Decode(
-    'CgtDaGF0UmVxdWVzdBIxCgVhdWRpbxgBIAEoCzIWLmdlbWluaUNoYXQuQXVkaW9JbnB1dEgAUg'
-    'VhdWRpb4gBARIXCgR0ZXh0GAIgASgJSAFSBHRleHSIAQESOgoIbG9jYXRpb24YAyABKAsyGS5n'
-    'ZW1pbmlDaGF0LkxvY2F0aW9uSW5wdXRIAlIIbG9jYXRpb26IAQESQwoMbXVsdGlfaW1hZ2VzGA'
-    'QgASgLMhsuZ2VtaW5pQ2hhdC5NdWx0aUltYWdlSW5wdXRIA1ILbXVsdGlJbWFnZXOIAQFCCAoG'
-    'X2F1ZGlvQgcKBV90ZXh0QgsKCV9sb2NhdGlvbkIPCg1fbXVsdGlfaW1hZ2Vz');
+    'CgtDaGF0UmVxdWVzdBIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW9uSWQSMQoFYXVkaW8YAi'
+    'ABKAsyFi5nZW1pbmlDaGF0LkF1ZGlvSW5wdXRIAFIFYXVkaW+IAQESFwoEdGV4dBgDIAEoCUgB'
+    'UgR0ZXh0iAEBEjoKCGxvY2F0aW9uGAQgASgLMhkuZ2VtaW5pQ2hhdC5Mb2NhdGlvbklucHV0SA'
+    'JSCGxvY2F0aW9uiAEBEkMKDG11bHRpX2ltYWdlcxgFIAEoCzIbLmdlbWluaUNoYXQuTXVsdGlJ'
+    'bWFnZUlucHV0SANSC211bHRpSW1hZ2VziAEBQggKBl9hdWRpb0IHCgVfdGV4dEILCglfbG9jYX'
+    'Rpb25CDwoNX211bHRpX2ltYWdlcw==');
 
 @$core.Deprecated('Use navigationResponseDescriptor instead')
 const NavigationResponse$json = {
@@ -115,12 +117,36 @@ final $typed_data.Uint8List navigationResponseDescriptor = $convert.base64Decode
 const ChatResponse$json = {
   '1': 'ChatResponse',
   '2': [
-    {'1': 'nav', '3': 1, '4': 1, '5': 11, '6': '.geminiChat.NavigationResponse', '10': 'nav'},
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'nav', '3': 2, '4': 1, '5': 11, '6': '.geminiChat.NavigationResponse', '10': 'nav'},
   ],
 };
 
 /// Descriptor for `ChatResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List chatResponseDescriptor = $convert.base64Decode(
-    'CgxDaGF0UmVzcG9uc2USMAoDbmF2GAEgASgLMh4uZ2VtaW5pQ2hhdC5OYXZpZ2F0aW9uUmVzcG'
-    '9uc2VSA25hdg==');
+    'CgxDaGF0UmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbklkEjAKA25hdhgCIA'
+    'EoCzIeLmdlbWluaUNoYXQuTmF2aWdhdGlvblJlc3BvbnNlUgNuYXY=');
+
+const $core.Map<$core.String, $core.dynamic> GeminiChatServiceBase$json = {
+  '1': 'GeminiChat',
+  '2': [
+    {'1': 'ChatStream', '2': '.geminiChat.ChatRequest', '3': '.geminiChat.ChatResponse', '5': true, '6': true},
+  ],
+};
+
+@$core.Deprecated('Use geminiChatServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> GeminiChatServiceBase$messageJson = {
+  '.geminiChat.ChatRequest': ChatRequest$json,
+  '.geminiChat.AudioInput': AudioInput$json,
+  '.geminiChat.LocationInput': LocationInput$json,
+  '.geminiChat.MultiImageInput': MultiImageInput$json,
+  '.geminiChat.ImageInput': ImageInput$json,
+  '.geminiChat.ChatResponse': ChatResponse$json,
+  '.geminiChat.NavigationResponse': NavigationResponse$json,
+};
+
+/// Descriptor for `GeminiChat`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List geminiChatServiceDescriptor = $convert.base64Decode(
+    'CgpHZW1pbmlDaGF0EkMKCkNoYXRTdHJlYW0SFy5nZW1pbmlDaGF0LkNoYXRSZXF1ZXN0GhguZ2'
+    'VtaW5pQ2hhdC5DaGF0UmVzcG9uc2UoATAB');
 
