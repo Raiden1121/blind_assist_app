@@ -142,7 +142,7 @@ get_current_step_decl = {
 
 get_current_location_decl = {
     "name":"get_current_location",
-    "description":"Get the user's current geographic location",
+    "description":"Get the user's current geographic location and heading",
     "parameters":{
         "type": "object",
         "properties": {},

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11gemini_chat.proto\x12\ngeminiChat\"r\n\x14\x43reateSessionRequest\x12\x1b\n\x0egemini_api_key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmaps_api_key\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x11\n\x0f_gemini_api_keyB\x0f\n\r_maps_api_key\"S\n\x15\x43reateSessionResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rerror_message\x18\x03 \x01(\t\"B\n\nAudioInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\x16\n\x0esample_rate_hz\x18\x03 \x01(\x05\"I\n\nImageInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\"9\n\x0fMultiImageInput\x12&\n\x06images\x18\x01 \x03(\x0b\x32\x16.geminiChat.ImageInput\")\n\rLocationInput\x12\x0b\n\x03lat\x18\x01 \x01(\x02\x12\x0b\n\x03lng\x18\x02 \x01(\x02\"\xfb\x01\n\x0b\x43hatRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12*\n\x05\x61udio\x18\x02 \x01(\x0b\x32\x16.geminiChat.AudioInputH\x00\x88\x01\x01\x12\x11\n\x04text\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x30\n\x08location\x18\x04 \x01(\x0b\x32\x19.geminiChat.LocationInputH\x02\x88\x01\x01\x12\x36\n\x0cmulti_images\x18\x05 \x01(\x0b\x32\x1b.geminiChat.MultiImageInputH\x03\x88\x01\x01\x42\x08\n\x06_audioB\x07\n\x05_textB\x0b\n\t_locationB\x0f\n\r_multi_images\"P\n\x12NavigationResponse\x12\r\n\x05\x61lert\x18\x01 \x01(\t\x12\x12\n\nnav_status\x18\x02 \x01(\x08\x12\x17\n\x0fnav_description\x18\x03 \x01(\t\"O\n\x0c\x43hatResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12+\n\x03nav\x18\x02 \x01(\x0b\x32\x1e.geminiChat.NavigationResponse2\xa7\x01\n\nGeminiChat\x12T\n\rCreateSession\x12 .geminiChat.CreateSessionRequest\x1a!.geminiChat.CreateSessionResponse\x12\x43\n\nChatStream\x12\x17.geminiChat.ChatRequest\x1a\x18.geminiChat.ChatResponse(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11gemini_chat.proto\x12\ngeminiChat\"r\n\x14\x43reateSessionRequest\x12\x1b\n\x0egemini_api_key\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmaps_api_key\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x11\n\x0f_gemini_api_keyB\x0f\n\r_maps_api_key\"S\n\x15\x43reateSessionResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rerror_message\x18\x03 \x01(\t\"B\n\nAudioInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\x16\n\x0esample_rate_hz\x18\x03 \x01(\x05\"I\n\nImageInput\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x02 \x01(\t\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\"9\n\x0fMultiImageInput\x12&\n\x06images\x18\x01 \x03(\x0b\x32\x16.geminiChat.ImageInput\":\n\rLocationInput\x12\x0b\n\x03lat\x18\x01 \x01(\x01\x12\x0b\n\x03lng\x18\x02 \x01(\x01\x12\x0f\n\x07heading\x18\x03 \x01(\x01\"\xfb\x01\n\x0b\x43hatRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12*\n\x05\x61udio\x18\x02 \x01(\x0b\x32\x16.geminiChat.AudioInputH\x00\x88\x01\x01\x12\x11\n\x04text\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x30\n\x08location\x18\x04 \x01(\x0b\x32\x19.geminiChat.LocationInputH\x02\x88\x01\x01\x12\x36\n\x0cmulti_images\x18\x05 \x01(\x0b\x32\x1b.geminiChat.MultiImageInputH\x03\x88\x01\x01\x42\x08\n\x06_audioB\x07\n\x05_textB\x0b\n\t_locationB\x0f\n\r_multi_images\"P\n\x12NavigationResponse\x12\r\n\x05\x61lert\x18\x01 \x01(\t\x12\x12\n\nnav_status\x18\x02 \x01(\x08\x12\x17\n\x0fnav_description\x18\x03 \x01(\t\"O\n\x0c\x43hatResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12+\n\x03nav\x18\x02 \x01(\x0b\x32\x1e.geminiChat.NavigationResponse2\xa7\x01\n\nGeminiChat\x12T\n\rCreateSession\x12 .geminiChat.CreateSessionRequest\x1a!.geminiChat.CreateSessionResponse\x12\x43\n\nChatStream\x12\x17.geminiChat.ChatRequest\x1a\x18.geminiChat.ChatResponse(\x01\x30\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,13 +42,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MULTIIMAGEINPUT']._serialized_start=377
   _globals['_MULTIIMAGEINPUT']._serialized_end=434
   _globals['_LOCATIONINPUT']._serialized_start=436
-  _globals['_LOCATIONINPUT']._serialized_end=477
-  _globals['_CHATREQUEST']._serialized_start=480
-  _globals['_CHATREQUEST']._serialized_end=731
-  _globals['_NAVIGATIONRESPONSE']._serialized_start=733
-  _globals['_NAVIGATIONRESPONSE']._serialized_end=813
-  _globals['_CHATRESPONSE']._serialized_start=815
-  _globals['_CHATRESPONSE']._serialized_end=894
-  _globals['_GEMINICHAT']._serialized_start=897
-  _globals['_GEMINICHAT']._serialized_end=1064
+  _globals['_LOCATIONINPUT']._serialized_end=494
+  _globals['_CHATREQUEST']._serialized_start=497
+  _globals['_CHATREQUEST']._serialized_end=748
+  _globals['_NAVIGATIONRESPONSE']._serialized_start=750
+  _globals['_NAVIGATIONRESPONSE']._serialized_end=830
+  _globals['_CHATRESPONSE']._serialized_start=832
+  _globals['_CHATRESPONSE']._serialized_end=911
+  _globals['_GEMINICHAT']._serialized_start=914
+  _globals['_GEMINICHAT']._serialized_end=1081
 # @@protoc_insertion_point(module_scope)

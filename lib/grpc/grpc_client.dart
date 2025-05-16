@@ -74,36 +74,36 @@ class GrpcClient {
   }
 
   /// 對 chatStream 做一次簡單的文字測試
-  static void testGrpc() {
-    final reqController = StreamController<ChatRequest>();
+  // static void testGrpc() {
+  //   final reqController = StreamController<ChatRequest>();
 
-    // 啟動 listener
-    stub.chatStream(reqController.stream).listen(
-      (ChatResponse response) {
-        if (response.hasNav()) {
-          print('✉️ nav.alert: ${response.nav.alert}');
-          print('✉️ nav.description: ${response.nav.navDescription}');
-        } else {
-          print('✉️ Received response without nav: $response');
-        }
-      },
-      onError: (err) => print('❌ gRPC Error: $err'),
-      onDone: () => print('🔚 gRPC stream closed'),
-      cancelOnError: true,
-    );
+  //   // 啟動 listener
+  //   stub.chatStream(reqController.stream).listen(
+  //     (ChatResponse response) {
+  //       if (response.hasNav()) {
+  //         print('✉️ nav.alert: ${response.nav.alert}');
+  //         print('✉️ nav.description: ${response.nav.navDescription}');
+  //       } else {
+  //         print('✉️ Received response without nav: $response');
+  //       }
+  //     },
+  //     onError: (err) => print('❌ gRPC Error: $err'),
+  //     onDone: () => print('🔚 gRPC stream closed'),
+  //     cancelOnError: true,
+  //   );
 
-    // 發送測試訊息
-    final req = ChatRequest();
-    req.sessionId = 'test_session_id' + sessionId;
-    req.text = 'Hello,  gRPC!';
-    req.location = (LocationInput()
-      ..lat = 25.0478
-      ..lng = 121.5319);
-    reqController.add(req);
+  //   // 發送測試訊息
+  //   final req = ChatRequest();
+  //   req.sessionId = 'test_session_id' + sessionId;
+  //   req.text = 'Hello,  gRPC!';
+  //   req.location = (LocationInput()
+  //     ..lat = 25.0478
+  //     ..lng = 121.5319);
+  //   reqController.add(req);
 
-    // 延遲後關閉 stream controller
-    Future.delayed(const Duration(seconds: 1), () {
-      reqController.close();
-    });
-  }
+  //   // 延遲後關閉 stream controller
+  //   Future.delayed(const Duration(seconds: 1), () {
+  //     reqController.close();
+  //   });
+  // }
 }

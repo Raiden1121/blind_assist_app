@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:blind_assist_app/utils/image_store.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 
 import '../generated/gemini_chat.pbgrpc.dart';
 
@@ -32,6 +33,9 @@ class _VoiceInputState extends State<VoiceInput> {
   final List<Uint8List> _chunks = [];
 
   Timer? _locationUpdateTimer;
+
+  StreamSubscription<CompassEvent>? _compassSubscription;
+  double _heading = 0.0; // Compass heading in degrees
 
   // late final StreamController<ChatRequest> _reqController;
   // late final StreamSubscription<ChatResponse> _respSub;
@@ -56,6 +60,7 @@ class _VoiceInputState extends State<VoiceInput> {
 
     _initRecorder(); // 延後 new FlutterSoundRecorder()
     _initLocationService();
+    _initCompass();
   }
 
   @override
@@ -68,8 +73,26 @@ class _VoiceInputState extends State<VoiceInput> {
     // _reqController.close();
     _audioSub?.cancel();
     _audioStreamController?.close();
+    _compassSubscription?.cancel();
     _flutterTts.stop();
     super.dispose();
+  }
+
+  /// Initialize compass sensor
+  Future<void> _initCompass() async {
+    if (FlutterCompass.events == null) {
+      debugPrint('❌ Compass not available on this device');
+      return;
+    }
+    
+    _compassSubscription = FlutterCompass.events!.listen((event) {
+      if (event.heading != null) {
+        setState(() {
+          _heading = event.heading!;
+        });
+        // debugPrint('🧭 Compass heading: ${_heading.toStringAsFixed(1)}°');
+      }
+    });
   }
 
   Future<void> _initLocationService() async {
@@ -111,7 +134,7 @@ class _VoiceInputState extends State<VoiceInput> {
     });
 
     // _reqController.add(locationRequest);
-    debugPrint('📍 Sent location: $_latitude, $_longitude');
+    // debugPrint('📍 Sent location: $_latitude, $_longitude');
   }
 
   Future<void> _initRecorder() async {
@@ -190,6 +213,13 @@ class _VoiceInputState extends State<VoiceInput> {
       final storedImages = ImageStore().getImages();
       final multiImages = MultiImageInput();
 
+      final locationInput = LocationInput()
+        ..lat = _latitude
+        ..lng = _longitude
+        ..heading = _heading;
+      
+      debugPrint('📍 Sent location: $_latitude, $_longitude, heading: ${_heading.toStringAsFixed(1)}°');
+
       for (var img in storedImages) {
         multiImages.images.add(ImageInput()
           ..data = img.bytes
@@ -202,9 +232,7 @@ class _VoiceInputState extends State<VoiceInput> {
             ..data = merged
             ..format = 'audio/raw'
             ..sampleRateHz = 16000)
-          ..location = (LocationInput()
-            ..lat = _latitude
-            ..lng = _longitude)
+          ..location = locationInput
           ..multiImages = multiImages // Add the images to request
       ]);
 

@@ -70,6 +70,34 @@ def transcribe_audio(audio_bytes):
     except Exception as e:
         logging.error(f"An error occurred during audio transcription: {e}")
         return None
+    
+def process_location_data(location_input):
+    lat = location_input.lat
+    lng = location_input.lng
+    heading = location_input.heading  # Get compass heading
+    
+    logging.info(f"Received location: {lat}, {lng} with heading: {heading}°")
+    
+    # Use heading for directional guidance
+    if heading > 337.5 or heading <= 22.5:
+        direction = "north"
+    elif heading > 22.5 and heading <= 67.5:
+        direction = "northeast"
+    elif heading > 67.5 and heading <= 112.5:
+        direction = "east"
+    elif heading > 112.5 and heading <= 157.5:
+        direction = "southeast"
+    elif heading > 157.5 and heading <= 202.5:
+        direction = "south"
+    elif heading > 202.5 and heading <= 247.5:
+        direction = "southwest"
+    elif heading > 247.5 and heading <= 292.5:
+        direction = "west"
+    else:
+        direction = "northwest"
+    
+    # Now you can use the direction in your navigation instructions
+    return direction
 
 class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
 
@@ -130,8 +158,9 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 if (request.HasField("location") and request.location.lat and request.location.lng):
                     lat = request.location.lat
                     lng = request.location.lng
+                    heading_info = process_location_data(request.location) + " angle: " + str(request.location.heading) + "°"
                     logging.info(f"Session {session_state.session_id}: Received location: {lat}, {lng}")
-                    navigator.set_current_location(session_state, {"lat": lat, "lng": lng})
+                    navigator.set_current_location(session_state, {"lat": lat, "lng": lng, 'heading': heading_info })
             
                 text_prompt = ""
                 audio_text = ""

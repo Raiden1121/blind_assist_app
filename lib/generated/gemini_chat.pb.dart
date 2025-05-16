@@ -378,6 +378,7 @@ class LocationInput extends $pb.GeneratedMessage {
   factory LocationInput({
     $core.double? lat,
     $core.double? lng,
+    $core.double? heading,
   }) {
     final $result = create();
     if (lat != null) {
@@ -386,6 +387,9 @@ class LocationInput extends $pb.GeneratedMessage {
     if (lng != null) {
       $result.lng = lng;
     }
+    if (heading != null) {
+      $result.heading = heading;
+    }
     return $result;
   }
   LocationInput._() : super();
@@ -393,8 +397,9 @@ class LocationInput extends $pb.GeneratedMessage {
   factory LocationInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LocationInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'geminiChat'), createEmptyInstance: create)
-    ..a<$core.double>(1, _omitFieldNames ? '' : 'lat', $pb.PbFieldType.OF)
-    ..a<$core.double>(2, _omitFieldNames ? '' : 'lng', $pb.PbFieldType.OF)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'lat', $pb.PbFieldType.OD)
+    ..a<$core.double>(2, _omitFieldNames ? '' : 'lng', $pb.PbFieldType.OD)
+    ..a<$core.double>(3, _omitFieldNames ? '' : 'heading', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -422,7 +427,7 @@ class LocationInput extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.double get lat => $_getN(0);
   @$pb.TagNumber(1)
-  set lat($core.double v) { $_setFloat(0, v); }
+  set lat($core.double v) { $_setDouble(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasLat() => $_has(0);
   @$pb.TagNumber(1)
@@ -431,11 +436,20 @@ class LocationInput extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.double get lng => $_getN(1);
   @$pb.TagNumber(2)
-  set lng($core.double v) { $_setFloat(1, v); }
+  set lng($core.double v) { $_setDouble(1, v); }
   @$pb.TagNumber(2)
   $core.bool hasLng() => $_has(1);
   @$pb.TagNumber(2)
   void clearLng() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get heading => $_getN(2);
+  @$pb.TagNumber(3)
+  set heading($core.double v) { $_setDouble(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHeading() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeading() => $_clearField(3);
 }
 
 /// 輸入訊息封包：音訊或影像（或文字）

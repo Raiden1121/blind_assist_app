@@ -96,14 +96,16 @@ final $typed_data.Uint8List multiImageInputDescriptor = $convert.base64Decode(
 const LocationInput$json = {
   '1': 'LocationInput',
   '2': [
-    {'1': 'lat', '3': 1, '4': 1, '5': 2, '10': 'lat'},
-    {'1': 'lng', '3': 2, '4': 1, '5': 2, '10': 'lng'},
+    {'1': 'lat', '3': 1, '4': 1, '5': 1, '10': 'lat'},
+    {'1': 'lng', '3': 2, '4': 1, '5': 1, '10': 'lng'},
+    {'1': 'heading', '3': 3, '4': 1, '5': 1, '10': 'heading'},
   ],
 };
 
 /// Descriptor for `LocationInput`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List locationInputDescriptor = $convert.base64Decode(
-    'Cg1Mb2NhdGlvbklucHV0EhAKA2xhdBgBIAEoAlIDbGF0EhAKA2xuZxgCIAEoAlIDbG5n');
+    'Cg1Mb2NhdGlvbklucHV0EhAKA2xhdBgBIAEoAVIDbGF0EhAKA2xuZxgCIAEoAVIDbG5nEhgKB2'
+    'hlYWRpbmcYAyABKAFSB2hlYWRpbmc=');
 
 @$core.Deprecated('Use chatRequestDescriptor instead')
 const ChatRequest$json = {

@@ -189,7 +189,7 @@ def set_current_location(session_state: SessionState, loc: Dict) -> None:
 async def get_current_location(session_state: SessionState) -> List[float]:
     print(f"Session {session_state.session_id}: Getting current location: {session_state.current_loc}")
     if session_state.current_loc and "lat" in session_state.current_loc and "lng" in session_state.current_loc:
-        return [float(session_state.current_loc["lat"]), float(session_state.current_loc["lng"])]
+        return [float(session_state.current_loc["lat"]), float(session_state.current_loc["lng"]), session_state.current_loc.get("heading", 0)]
     # This should ideally not be reached if client always sends location.
     # If it can be reached, implement a fallback or raise a more specific error.
     print(f"Warning: Session {session_state.session_id}: Current location not available in session. Returning default or raising error.")
@@ -439,7 +439,7 @@ async def ask_llm(session_state: SessionState, message_content: Any, images: Opt
                     fn_response_content = await get_current_step_from_session(session_state)
                 elif fn_name == "get_current_location": # Corresponds to get_current_location_decl
                     loc = await get_current_location(session_state)
-                    fn_response_content = {"lat": loc[0], "lng": loc[1]}
+                    fn_response_content = {"lat": loc[0], "lng": loc[1],"heading": loc[2]}
                 elif fn_name == "restart_navigation":
                     await restart_navigation(session_state, **fn_args) # Modifies session_state
                     fn_response_content = {"status": "navigation_restart_initiated"}

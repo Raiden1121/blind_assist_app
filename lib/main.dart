@@ -33,7 +33,7 @@ void main() async {
   try {
     // 初始化 gRPC 客戶端
     await GrpcClient.init();
-    GrpcClient.testGrpc();
+    // GrpcClient.testGrpc();
     print("✅ gRPC Client initialized");
   } catch (e) {
     print("🔥 gRPC Client initialization failed: $e");

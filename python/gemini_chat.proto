@@ -43,8 +43,9 @@ message MultiImageInput {
 }
 
 message LocationInput {
-  float lat = 1;
-  float lng = 2;
+  double lat = 1;
+  double lng = 2;
+  double heading = 3;
 }
 
 // 輸入訊息封包：音訊或影像（或文字）
