@@ -112,7 +112,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                         transcribe_audio, request.audio.data)
                     
                     if audio_text == "Cannot understand audio":
-                        llm_resp = NavResponse(response_text="Please repeat your request.")
+                        llm_resp = NavResponse(response_text="Please repeat your request.",alerts=[])
                         logging.warning(f"Session {session_state.session_id}: Cannot understand audio")
                     elif audio_text:
                         llm_resp = await navigator.chatbot_conversation(session_state, audio_text,multi_images)
@@ -126,7 +126,6 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
 
                 response = gemini_chat_pb2.ChatResponse()
                 response.session_id = request.session_id
-                response.alert=llm_resp.alerts.join(", ") if llm_resp else ""
                 
                 response.nav.nav_status = session_state.status == "Navigating"
                 if llm_resp:

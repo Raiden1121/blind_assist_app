@@ -14,6 +14,7 @@ from google import genai
 from tool_schemas import *
 # Make sure deviation module is available
 import deviation
+from pydantic import BaseModel
 
 
 dotenv.load_dotenv()
@@ -117,6 +118,10 @@ navigating_routes_tool_declarations = [
     get_current_location_decl, restart_navigation_decl, get_full_route_decl
 ]
 
+class NavResponse(BaseModel):
+    response_text: str
+    alerts: List[str]
+    
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY")) 
 class ChatManager:
     def __init__(self, api_key: str):
@@ -475,7 +480,7 @@ async def get_static_map_image(session_state: SessionState, location_coords: Lis
         return None
 
 
-async def chatbot_conversation(session_state: SessionState, user_input: str, images: Optional[List[bytes]] = None) -> str:
+async def chatbot_conversation(session_state: SessionState, user_input: str, images: Optional[List[bytes]] = None) -> NavResponse:
     try:
         current_session_loc_list = await get_current_location(session_state)
     except ValueError as e: # Handle case where location is not set
@@ -516,8 +521,12 @@ async def chatbot_conversation(session_state: SessionState, user_input: str, ima
     
     mode_display = "Navigation" if session_state.status == "Navigating" else "Idle"
     print(f"[Session {session_state.session_id} Mode: {mode_display}] LLM Replied.")
-
-    return text_response
+    
+    alert_response = "NO_ALERT" # Placeholder for actual alert response logic
+    # _, alert_response = await ask_llm(session_state, "Analyze the camera images provided last turn (if any), do you see any potential hazards or obstacles? If none, please say 'NO_ALERT'.")
+    # alert_response = alert_response.strip()
+    response=NavResponse(response_text=text_response, alerts=[alert_response] if alert_response != "NO_ALERT" else [])
+    return response
 
 
 if __name__ == "__main__":
@@ -556,8 +565,8 @@ if __name__ == "__main__":
                     break
                 
                 # Simulate receiving no images for this test CLI
-                response_text = await chatbot_conversation(s_state, user_text, images=None)
-                print(f"Assistant (Session {test_session_id}): {response_text}")
+                response = await chatbot_conversation(s_state, user_text, images=None)
+                print(f"Assistant (Session {test_session_id}): {response.response_text}\n Alerts: {response.alerts}")
 
             except KeyboardInterrupt:
                 print("\nExiting local test due to KeyboardInterrupt.")
