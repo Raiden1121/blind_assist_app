@@ -10,18 +10,18 @@ class GrpcClient {
   static late GeminiChatClient stub;
   static String sessionId =
       const Uuid().v4(); // Session ID for gRPC communication with UUID
-  static String host = '192.168.12.39'; // gRPC 伺服器的主機名稱或 IP 地址
-  static String host1 = '10.0.2.2';
-  static int port = 50051; // gRPC 伺服器的埠號
+  static String host = '34.46.68.206'; // gRPC 伺服器的主機名稱或 IP 地址
+  // static String host1 = '10.0.2.2';
+  static int port = 1025; // gRPC 伺服器的埠號
   static final SettingsService _settings = SettingsService();
 
   /// 在 App 啟動時呼叫此方法完成初始化
   static Future<void> init() async {
     try {
-      print('host: $host1');
+      print('host: $host');
       print('port: $port');
       channel = ClientChannel(
-        host1,
+        host,
         port: port,
         options: ChannelOptions(
           credentials: ChannelCredentials.insecure(),
