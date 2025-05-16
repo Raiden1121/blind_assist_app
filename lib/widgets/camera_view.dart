@@ -169,31 +169,8 @@ class _CameraViewState extends State<CameraView> {
         CameraController(chosen, ResolutionPreset.medium, enableAudio: false);
     await _controller!.initialize();
 
-    // 3️⃣ 開始影像串流，每 N 幀傳一次
-    // _controller!.startImageStream((img) async {
-    //   _frameCounter++;
-    //   if (!_isSending && _frameCounter % _processFrameInterval == 0) {
-    //     _isSending = true;
-    //     try {
-    //       final bytes = _encodeJpeg(img); // 已實作
-    //       _reqCtrl.add(ChatRequest()
-    //         ..multiImages = (MultiImageInput()
-    //           ..images.add(ImageInput()
-    //             ..data = bytes
-    //             ..format = 'image/jpeg'
-    //             ..width = img.width
-    //             ..height = img.height)));
-    //     } catch (e) {
-    //       print('❌ send frame error: $e');
-    //     } finally {
-    //       _isSending = false;
-    //     }
-    //   }
-    // });
-
-    // 每五秒傳一次影像
     _sendTimer?.cancel(); // 先取消舊的
-    _sendTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _sendTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (!mounted || !_isStreaming || _isSending || _lastImage == null) {
         if (!mounted) timer.cancel();
         return;
