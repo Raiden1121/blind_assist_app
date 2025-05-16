@@ -28,6 +28,13 @@ class GrpcClient {
           timeout: Duration(seconds: 30),
         ),
       );
+
+      // Create session and get session ID from server
+      final sessionRequest = CreateSessionRequest();
+      final sessionResponse = await stub.createSession(sessionRequest);
+      sessionId = sessionResponse.sessionId;
+      print('Session created with ID: $sessionId');
+
     } catch (e) {
       print('gRPC Client initialization failed: $e');
     }

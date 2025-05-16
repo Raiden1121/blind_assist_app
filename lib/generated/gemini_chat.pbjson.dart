@@ -162,31 +162,3 @@ final $typed_data.Uint8List chatResponseDescriptor = $convert.base64Decode(
     'CgxDaGF0UmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbklkEjAKA25hdhgCIA'
     'EoCzIeLmdlbWluaUNoYXQuTmF2aWdhdGlvblJlc3BvbnNlUgNuYXY=');
 
-const $core.Map<$core.String, $core.dynamic> GeminiChatServiceBase$json = {
-  '1': 'GeminiChat',
-  '2': [
-    {'1': 'CreateSession', '2': '.geminiChat.CreateSessionRequest', '3': '.geminiChat.CreateSessionResponse'},
-    {'1': 'ChatStream', '2': '.geminiChat.ChatRequest', '3': '.geminiChat.ChatResponse', '5': true, '6': true},
-  ],
-};
-
-@$core.Deprecated('Use geminiChatServiceDescriptor instead')
-const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> GeminiChatServiceBase$messageJson = {
-  '.geminiChat.CreateSessionRequest': CreateSessionRequest$json,
-  '.geminiChat.CreateSessionResponse': CreateSessionResponse$json,
-  '.geminiChat.ChatRequest': ChatRequest$json,
-  '.geminiChat.AudioInput': AudioInput$json,
-  '.geminiChat.LocationInput': LocationInput$json,
-  '.geminiChat.MultiImageInput': MultiImageInput$json,
-  '.geminiChat.ImageInput': ImageInput$json,
-  '.geminiChat.ChatResponse': ChatResponse$json,
-  '.geminiChat.NavigationResponse': NavigationResponse$json,
-};
-
-/// Descriptor for `GeminiChat`. Decode as a `google.protobuf.ServiceDescriptorProto`.
-final $typed_data.Uint8List geminiChatServiceDescriptor = $convert.base64Decode(
-    'CgpHZW1pbmlDaGF0ElQKDUNyZWF0ZVNlc3Npb24SIC5nZW1pbmlDaGF0LkNyZWF0ZVNlc3Npb2'
-    '5SZXF1ZXN0GiEuZ2VtaW5pQ2hhdC5DcmVhdGVTZXNzaW9uUmVzcG9uc2USQwoKQ2hhdFN0cmVh'
-    'bRIXLmdlbWluaUNoYXQuQ2hhdFJlcXVlc3QaGC5nZW1pbmlDaGF0LkNoYXRSZXNwb25zZSgBMA'
-    'E=');
-

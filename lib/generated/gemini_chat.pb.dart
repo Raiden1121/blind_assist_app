@@ -9,7 +9,6 @@
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
-import 'dart:async' as $async;
 import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
@@ -694,21 +693,6 @@ class ChatResponse extends $pb.GeneratedMessage {
   void clearNav() => $_clearField(2);
   @$pb.TagNumber(2)
   NavigationResponse ensureNav() => $_ensure(1);
-}
-
-/// 定義 Gemini Chat 服務
-class GeminiChatApi {
-  $pb.RpcClient _client;
-  GeminiChatApi(this._client);
-
-  /// 建立新會話，並可選擇性提供 API 金鑰
-  $async.Future<CreateSessionResponse> createSession($pb.ClientContext? ctx, CreateSessionRequest request) =>
-    _client.invoke<CreateSessionResponse>(ctx, 'GeminiChat', 'CreateSession', request, CreateSessionResponse())
-  ;
-  /// 雙向串流：客戶端可以流式送多筆 audio/image 訊息，後端流式回應
-  $async.Future<ChatResponse> chatStream($pb.ClientContext? ctx, ChatRequest request) =>
-    _client.invoke<ChatResponse>(ctx, 'GeminiChat', 'ChatStream', request, ChatResponse())
-  ;
 }
 
 

@@ -524,7 +524,7 @@ async def chatbot_conversation(session_state: SessionState, user_input: str, ima
     if session_state.status == "Navigating" and session_state.current_route:
         if deviation: # Check if deviation module is imported
             current_step_info = deviation.get_current_step(
-                current_session_loc_list[0], current_session_loc_list[1], session_state.current_route, 20 # 20m tolerance
+                current_session_loc_list[0], current_session_loc_list[1], session_state.current_route, 100 # 20m tolerance
             )
             session_state.current_step = current_step_info
             print(f"Session {session_state.session_id}: Updated current step: {current_step_info}")
