@@ -21,14 +21,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as imglib;
-// import 'package:blind_assist_app/grpc/gemini_live_client.dart';
-// import 'package:blind_assist_app/generated/blind_assist.pb.dart';
-// import 'package:blind_assist_app/generated/blind_assist.pbgrpc.dart';
-import 'package:blind_assist_app/grpc/grpc_client.dart';
-import 'package:blind_assist_app/generated/gemini_chat.pbgrpc.dart';
-import 'package:blind_assist_app/generated/gemini_chat.pb.dart';
 import 'package:blind_assist_app/widgets/speech_player.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:blind_assist_app/utils/image_store.dart';
 
 // === JPEG 編碼：將 YUV420 轉成 RGB，再用 image 套件編碼 ===
 Uint8List _encodeJpegIsolate(Map<String, dynamic> params) {
@@ -76,12 +71,6 @@ class _CameraViewState extends State<CameraView> {
   final SpeechPlayer _speechPlayer = SpeechPlayer();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  // === gRPC ===
-  late final StreamController<ChatRequest> _reqCtrl;
-  late final Stream<ChatResponse> _respStream;
-  StreamSubscription<ChatResponse>? _respSubscription;
-  // bool _grpcReady = false;
-
   CameraImage? _lastImage;
   Timer? _sendTimer;
 
@@ -100,7 +89,6 @@ class _CameraViewState extends State<CameraView> {
   void initState() {
     super.initState();
     _initLocation(); // 啟動 GPS
-    _initGrpc(); // 初始化 gRPC 串流
   }
 
   @override
@@ -129,9 +117,6 @@ class _CameraViewState extends State<CameraView> {
     }
     _controller = null;
 
-    // ⑤ 關閉 gRPC
-    _respSubscription?.cancel();
-    _reqCtrl.close();
 
     super.dispose();
   }
@@ -168,19 +153,6 @@ class _CameraViewState extends State<CameraView> {
     });
   }
 
-  // === gRPC 初始化 ===
-  Future<void> _initGrpc() async {
-    // 建立 StreamController 並先送 initialConfig
-    _reqCtrl = StreamController<ChatRequest>();
-    _reqCtrl.add(ChatRequest()..text = 'Speak: Camera open');
-    // 雙向串流
-    _respStream = GrpcClient.chatStream(_reqCtrl.stream);
-    _respSubscription = _respStream.listen(_handleResponse,
-        onError: (e) => print('gRPC stream error: $e'),
-        onDone: () => print('gRPC stream closed'));
-
-    // _grpcReady = true;
-  }
 
   // === 開啟相機 & 傳影像 ===
   Future<void> _openCamera() async {
@@ -240,14 +212,11 @@ class _CameraViewState extends State<CameraView> {
           'uvPixelStride': img.planes[1].bytesPerPixel,
         };
         final bytes = await compute(_encodeJpegIsolate, params);
-        debugPrint("📸 send image: ${bytes.length} bytes");
-        _reqCtrl.add(ChatRequest()
-          ..multiImages = (MultiImageInput()
-            ..images.add(ImageInput()
-              ..data = bytes
-              ..format = 'image/jpeg'
-              ..width = img.width
-              ..height = img.height)));
+        debugPrint("📸 Captured image: ${bytes.length} bytes");
+        
+        // Store the image
+        ImageStore().addImage(bytes, DateTime.now());
+        
       } catch (e) {
         print('❌ encode/send error: $e');
       } finally {
@@ -286,40 +255,6 @@ class _CameraViewState extends State<CameraView> {
       setState(() {});
       await _speechPlayer.speak('Camera closed. Thank you.');
     }
-  }
-
-  // === 處理後端回應 ===
-  void _handleResponse(ChatResponse resp) async {
-    if (resp.hasNav()) {
-      final nav = resp.nav;
-
-      if (nav.alert.isNotEmpty) {
-        final dm = nav.alert.substring(7).trim();
-        setState(() {
-          _showDanger = true;
-          _dangerMessage = dm;
-        });
-
-        // 播放警示音效
-        await _speechPlayer.stop();
-        await _audioPlayer.play(AssetSource('assets/sounds/alarm.mp3'));
-        await _audioPlayer.onPlayerComplete.first;
-        await _speechPlayer.speak(dm);
-        await Future.delayed(const Duration(seconds: 3));
-        setState(() => _showDanger = false);
-      } else {
-        await _speechPlayer.speak(nav.alert);
-      }
-      return;
-    }
-    // if (resp.hasGeminiAudioPart()) {
-    //   await _audioPlayer.play(
-    //       BytesSource(Uint8List.fromList(resp.geminiAudioPart.audioData)));
-    //   return;
-    // }
-    // if (resp.hasErrorPart()) {
-    //   print('gRPC Error ${resp.errorPart.code}: ${resp.errorPart.message}');
-    // }
   }
 
   // === UI & 手勢：雙擊開關鏡頭 ===

@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:grpc/grpc.dart' as grpc;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:blind_assist_app/utils/image_store.dart';
 
 import '../generated/gemini_chat.pbgrpc.dart';
 
@@ -193,16 +194,15 @@ class _VoiceInputState extends State<VoiceInput> {
       debugPrint(
           '📊 Audio stats: ${audioSize.toStringAsFixed(1)}KB, ${durationMs}ms');
 
-      // _reqController.add(
-      //   ChatRequest()
-      //     ..audio = (AudioInput()
-      //       ..data = merged
-      //       ..format = 'audio/wav'
-      //       ..sampleRateHz = 16000)
-      //     ..location = (LocationInput()
-      //       ..lat = _latitude
-      //       ..lng = _longitude),
-      // );
+      // Get stored images
+      final storedImages = ImageStore().getImages();
+      final multiImages = MultiImageInput();
+      
+      for (var img in storedImages) {
+        multiImages.images.add(ImageInput()
+          ..data = img.bytes
+          ..format = 'image/jpeg');
+      }
 
       Stream<ChatRequest> request = Stream.fromIterable([
         ChatRequest()
@@ -212,7 +212,8 @@ class _VoiceInputState extends State<VoiceInput> {
             ..sampleRateHz = 16000)
           ..location = (LocationInput()
             ..lat = _latitude
-            ..lng = _longitude),
+            ..lng = _longitude)
+          ..multiImages = multiImages  // Add the images to request
       ]);
 
       GrpcClient.chatStream(request).listen(

@@ -97,10 +97,17 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 llm_resp = None
                 alert_resp = None
                 
+                multi_images = []
+                if request.HasField("multi_images") and len(request.multi_images.images) > 0:
+                    for img in request.multi_images.images:
+                        if img.data:
+                            multi_images.append(img.data)
+                            
+                logging.info(f"Session {session_state.session_id}: Processing {len(multi_images)} images")
                 if request.HasField("text"):
                     text_prompt = request.text
                     logging.info(f"Session {session_state.session_id}: Received text: {text_prompt}")
-                    llm_resp = await navigator.chatbot_conversation(session_state, text_prompt)
+                    llm_resp = await navigator.chatbot_conversation(session_state, text_prompt,multi_images)
                 elif request.HasField("audio") and request.audio.data:
                     audio_text = await asyncio.to_thread(
                         transcribe_audio, request.audio.data)
@@ -109,20 +116,14 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                         llm_resp = "Please repeat your request."
                         logging.warning(f"Session {session_state.session_id}: Cannot understand audio")
                     elif audio_text:
-                        llm_resp = await navigator.chatbot_conversation(session_state, audio_text)
+                        llm_resp = await navigator.chatbot_conversation(session_state, audio_text,multi_images)
                         logging.info(f"Session {session_state.session_id}: Transcribed audio: {audio_text}")
                     else:
                         logging.error(f"Session {session_state.session_id}: Failed to transcribe audio")
                 
-                if request.HasField("multi_images") and len(request.multi_images.images) > 0:
-                    multi_images = []
-                    for img in request.multi_images.images:
-                        if img.data:
-                            multi_images.append(img.data)
-                
-                    logging.info(f"Session {session_state.session_id}: Processing {len(multi_images)} images")
-                    alert_resp = await navigator.chatbot_conversation(session_state, 
-                        navigator.images_alert_prompt, multi_images)
+                    # logging.info(f"Session {session_state.session_id}: Processing {len(multi_images)} images")
+                    # alert_resp = await navigator.chatbot_conversation(session_state, 
+                    #     navigator.images_alert_prompt, multi_images)
 
                 response = gemini_chat_pb2.ChatResponse()
                 response.session_id = request.session_id
