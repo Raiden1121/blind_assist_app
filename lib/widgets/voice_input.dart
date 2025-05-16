@@ -3,11 +3,11 @@ import 'dart:typed_data';
 
 // import 'package:blind_assist_app/generated/gemini_chat.pbjson.dart';
 import 'package:blind_assist_app/grpc/grpc_client.dart';
+import 'package:blind_assist_app/services/settings_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:location/location.dart' as loc;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:grpc/grpc.dart' as grpc;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:blind_assist_app/utils/image_store.dart';
@@ -54,7 +54,6 @@ class _VoiceInputState extends State<VoiceInput> {
     //     onError: (e) => debugPrint('❌ gRPC error: \$e'),
     //     onDone: () => debugPrint('✅ gRPC stream closed'));
 
-    _initTts();
     _initRecorder(); // 延後 new FlutterSoundRecorder()
     _initLocationService();
   }
@@ -71,13 +70,6 @@ class _VoiceInputState extends State<VoiceInput> {
     _audioStreamController?.close();
     _flutterTts.stop();
     super.dispose();
-  }
-
-  Future<void> _initTts() async {
-    await _flutterTts.setLanguage('zh-TW');
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
   }
 
   Future<void> _initLocationService() async {
@@ -197,7 +189,7 @@ class _VoiceInputState extends State<VoiceInput> {
       // Get stored images
       final storedImages = ImageStore().getImages();
       final multiImages = MultiImageInput();
-      
+
       for (var img in storedImages) {
         multiImages.images.add(ImageInput()
           ..data = img.bytes
@@ -213,7 +205,7 @@ class _VoiceInputState extends State<VoiceInput> {
           ..location = (LocationInput()
             ..lat = _latitude
             ..lng = _longitude)
-          ..multiImages = multiImages  // Add the images to request
+          ..multiImages = multiImages // Add the images to request
       ]);
 
       GrpcClient.chatStream(request).listen(
@@ -225,8 +217,9 @@ class _VoiceInputState extends State<VoiceInput> {
             // }
 
             if (nav.navDescription != "") {
+              await _updateTtsSettings();
               await _flutterTts.speak(nav.navDescription);
-            } else if(nav.navDescription.contains("Error")) {
+            } else if (nav.navDescription.contains("Error")) {
               await _flutterTts.speak("Please try again.");
             }
           }
@@ -248,6 +241,11 @@ class _VoiceInputState extends State<VoiceInput> {
     } catch (e) {
       debugPrint('🛑 stopRecorder 失敗：$e');
     }
+  }
+
+  Future<void> _updateTtsSettings() async {
+    final speechRate = await SettingsService().getSpeechRate();
+    await _flutterTts.setSpeechRate(speechRate);
   }
 
   // void _onServerResponse(ChatResponse response) async {

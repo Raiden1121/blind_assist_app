@@ -7,6 +7,7 @@
 // 3️⃣ AssistHomePage：主頁面（包含相機影像、語音輸入、語音播報）
 // =======================================================
 
+import 'package:blind_assist_app/widgets/settings_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -121,6 +122,27 @@ class _AssistHomePageState extends State<AssistHomePage> {
       appBar: AppBar(
         title: const Text('Blind Assist'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              // Play a sound for blind users to know settings are opened
+              speechPlayer.speak("Settings opened");
+
+              // Show settings bottom sheet
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true, // Makes it taller than standard
+                backgroundColor: Colors.transparent,
+                builder: (context) => Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: const SettingsBottomSheet(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
