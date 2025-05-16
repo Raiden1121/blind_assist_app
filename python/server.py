@@ -16,7 +16,7 @@ import httpx
 from google import genai
 from google.genai import types
 import navigator
-from navigator import SessionState
+from navigator import SessionState,NavResponse
 
 load_dotenv()
 
@@ -95,7 +95,6 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                 text_prompt = ""
                 audio_text = ""
                 llm_resp = None
-                alert_resp = None
                 
                 multi_images = []
                 if request.HasField("multi_images") and len(request.multi_images.images) > 0:
@@ -113,7 +112,7 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
                         transcribe_audio, request.audio.data)
                     
                     if audio_text == "Cannot understand audio":
-                        llm_resp = "Please repeat your request."
+                        llm_resp = NavResponse(response_text="Please repeat your request.")
                         logging.warning(f"Session {session_state.session_id}: Cannot understand audio")
                     elif audio_text:
                         llm_resp = await navigator.chatbot_conversation(session_state, audio_text,multi_images)
@@ -127,14 +126,11 @@ class GeminiChatServicer(gemini_chat_pb2_grpc.GeminiChatServicer):
 
                 response = gemini_chat_pb2.ChatResponse()
                 response.session_id = request.session_id
-                if alert_resp:
-                    response.nav.alert = alert_resp
-                else:
-                    response.nav.alert = "No alert generated."
+                response.alert=llm_resp.alerts.join(", ") if llm_resp else ""
                 
                 response.nav.nav_status = session_state.status == "Navigating"
                 if llm_resp:
-                    response.nav.nav_description = llm_resp
+                    response.nav.nav_description = llm_resp.response_text
                 else:
                     response.nav.nav_description = ""
                 
